@@ -1,8 +1,8 @@
-# Sandbench
+# LLM Sand Game Test
 
 [中文](README.md)
 
-One prompt, one falling-sand game. This repo keeps the code and videos from running the same small task across different models.
+One prompt, many model outputs. This repo keeps the code and videos from a falling-sand game test across different LLMs.
 
 The task is short, but it still presses on requirement understanding, physics simulation, material systems, frontend engineering, interaction design, performance, self-checking, and constraint following. The generated results quickly show what each model is good at, what it misses, and where its mistakes may leak into real development work.
 
@@ -26,7 +26,7 @@ Single-HTML version:
 | [![gpt55](media/thumbnails/gpt55.jpg)](media/gpt55.mp4) | GPT-5.5 standalone run. |
 | [![gemini35-flash](media/thumbnails/gemini35-flash.jpg)](media/gemini35-flash.mp4) | Gemini 3.5 Flash follow-up run. |
 
-## Results
+## Test Results
 
 Code lives in [`results/`](results/).
 

@@ -1,8 +1,8 @@
-# Sandbench
+# LLM Sand Game Test
 
 [English](README.en.md)
 
-一句话做落沙游戏。这里放我用不同模型跑同一题的代码和视频。
+同一句提示词，不同模型做落沙游戏。这里放测试代码和视频。
 
 这个小题同时压着需求理解、物理模拟、材质系统、前端工程、交互设计、性能、自测和约束遵循。模型生成出来的结果，会很快暴露它们各自擅长什么、忽略什么，以及在真实开发中可能会把问题带到哪里。
 
@@ -26,7 +26,7 @@
 | [![gpt55](media/thumbnails/gpt55.jpg)](media/gpt55.mp4) | GPT-5.5 单独测试。 |
 | [![gemini35-flash](media/thumbnails/gemini35-flash.jpg)](media/gemini35-flash.mp4) | Gemini 3.5 Flash 补测。 |
 
-## 结果
+## 测试结果
 
 代码在 [`results/`](results/)。
 
@@ -46,7 +46,7 @@ http://localhost:4173/results/
 
 ## 说明
 
-这不是排行榜，只是同一句 prompt 下的现场记录。后面新模型可以继续往里加。
+这不是排行榜，只是同一句 prompt 下的现场记录。新模型可以继续往里加。
 
 ## License
 
