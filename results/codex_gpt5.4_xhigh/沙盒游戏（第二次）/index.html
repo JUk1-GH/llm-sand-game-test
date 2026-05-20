@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dustfall Forge</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">Material Sandbox</p>
+          <h1>Dustfall Forge</h1>
+          <p class="lede">
+            自写网格物理引擎驱动的落沙实验场。粉末、液体、火焰、蒸汽与腐蚀会在同一张画布里互相作用。
+          </p>
+        </div>
+        <div class="controls compact">
+          <button id="pauseButton" class="ghost">暂停</button>
+          <button id="stepButton" class="ghost">单步</button>
+          <button id="clearButton" class="ghost">清空</button>
+          <button id="fillButton" class="accent">演示场景</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="viewport">
+          <div class="canvas-frame">
+            <canvas id="world" width="900" height="600" aria-label="落沙模拟画布"></canvas>
+            <div class="canvas-overlay">
+              <span id="statusBadge">运行中</span>
+              <span id="hintBadge">左键绘制 / 右键擦除 / 空格暂停 / R 重置</span>
+            </div>
+          </div>
+          <div class="stats">
+            <article>
+              <span>粒子数</span>
+              <strong id="particleCount">0</strong>
+            </article>
+            <article>
+              <span>帧率</span>
+              <strong id="fpsValue">0</strong>
+            </article>
+            <article>
+              <span>当前材质</span>
+              <strong id="selectedLabel">沙子</strong>
+            </article>
+            <article>
+              <span>画笔半径</span>
+              <strong id="brushLabel">8</strong>
+            </article>
+          </div>
+        </section>
+
+        <aside class="panel">
+          <section>
+            <div class="section-head">
+              <h2>材质库</h2>
+              <p>每种材质都定义了密度、燃烧性、腐蚀性、温度和流动行为。</p>
+            </div>
+            <div id="materialGrid" class="material-grid" role="list"></div>
+          </section>
+
+          <section>
+            <div class="section-head">
+              <h2>画笔参数</h2>
+              <p>调节喷洒规模与喷射强度，观察不同材质的稳定性。</p>
+            </div>
+            <label class="slider-row" for="brushSize">
+              <span>画笔大小</span>
+              <input id="brushSize" type="range" min="1" max="24" value="8" />
+            </label>
+            <label class="slider-row" for="brushFlow">
+              <span>喷洒密度</span>
+              <input id="brushFlow" type="range" min="4" max="80" value="28" />
+            </label>
+            <label class="slider-row" for="simSpeed">
+              <span>模拟速度</span>
+              <input id="simSpeed" type="range" min="1" max="4" value="2" />
+            </label>
+          </section>
+
+          <section>
+            <div class="section-head">
+              <h2>材质说明</h2>
+              <p id="materialDescription">
+                沙子会在重力作用下堆积成坡，并可被水冲刷。
+              </p>
+            </div>
+            <div class="legend">
+              <span><i class="chip powder"></i>粉末</span>
+              <span><i class="chip liquid"></i>液体</span>
+              <span><i class="chip gas"></i>气体</span>
+              <span><i class="chip solid"></i>固体</span>
+              <span><i class="chip fire"></i>热源</span>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="./main.js"></script>
+  </body>
+</html>

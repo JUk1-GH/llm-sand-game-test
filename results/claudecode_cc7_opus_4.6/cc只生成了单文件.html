@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>落沙模拟</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #eee; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; user-select: none; }
+#toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; max-width: 820px; }
+.mat-btn { width: 44px; height: 44px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); transition: border-color .15s, transform .1s; }
+.mat-btn:hover { transform: scale(1.1); }
+.mat-btn.active { border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,.5); }
+.ctrl { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+.ctrl label { font-size: 12px; color: #aaa; }
+.ctrl input[type=range] { width: 80px; }
+button.action { background: #333; color: #eee; border: 1px solid #555; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+button.action:hover { background: #444; }
+#fps { font-size: 12px; color: #888; margin-left: 8px; min-width: 70px; }
+canvas { border: 1px solid #333; cursor: crosshair; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<div id="toolbar"></div>
+<canvas id="c"></canvas>
+<script>
+// --- Constants ---
+const W = 200, H = 150, SCALE = 4, CW = W * SCALE, CH = H * SCALE;
+const EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, FIRE = 4, OIL = 5, PLANT = 6, STEAM = 7, WOOD = 8, SALT = 9, ACID = 10, LAVA = 11, GUNPOWDER = 12;
+
+// --- Material Registry ---
+// Helper: convert RGBA to Uint32 (little-endian ABGR)
+function rgba(r,g,b,a=255){ return (a<<24)|(b<<16)|(g<<8)|r; }
+
+const MAT = {
+  [EMPTY]:     { name:'Erase',  move:'none',   density:0,   burn:false, colors:[rgba(26,26,46)] },
+  [SAND]:      { name:'Sand',   move:'powder', density:90,  burn:false, colors:[rgba(245,198,66),rgba(224,184,58),rgba(255,208,80),rgba(208,176,56)] },
+  [WATER]:     { name:'Water',  move:'liquid', density:60,  burn:false, colors:[rgba(48,48,240),rgba(40,40,224),rgba(64,64,208),rgba(56,56,200)] },
+  [STONE]:     { name:'Stone',  move:'static', density:200, burn:false, colors:[rgba(136,136,136),rgba(128,128,128),rgba(144,144,144),rgba(120,120,120)] },
+  [FIRE]:      { name:'Fire',   move:'gas_up', density:5,   burn:false, colors:[rgba(255,165,0),rgba(255,144,0),rgba(224,96,0),rgba(192,64,0)] },
+  [OIL]:       { name:'Oil',    move:'liquid', density:50,  burn:true,  colors:[rgba(96,64,32),rgba(80,48,24),rgba(104,72,40),rgba(72,40,16)] },
+  [PLANT]:     { name:'Plant',  move:'static', density:100, burn:true,  colors:[rgba(32,160,32),rgba(24,176,24),rgba(40,192,40),rgba(16,144,16)] },
+  [STEAM]:     { name:'Steam',  move:'gas_up', density:2,   burn:false, colors:[rgba(192,208,224),rgba(184,200,216),rgba(200,216,232),rgba(176,192,208)] },
+  [WOOD]:      { name:'Wood',   move:'static', density:150, burn:true,  colors:[rgba(160,96,32),rgba(144,80,24),rgba(168,104,40),rgba(136,72,16)] },
+  [SALT]:      { name:'Salt',   move:'powder', density:85,  burn:false, colors:[rgba(240,240,240),rgba(232,232,232),rgba(248,248,248),rgba(224,224,224)] },
+  [ACID]:      { name:'Acid',   move:'liquid', density:55,  burn:false, colors:[rgba(32,240,32),rgba(24,232,24),rgba(40,255,40),rgba(16,216,16)] },
+  [LAVA]:      { name:'Lava',   move:'liquid', density:95,  burn:false, colors:[rgba(255,64,0),rgba(224,48,0),rgba(255,80,0),rgba(192,32,0)] },
+  [GUNPOWDER]: { name:'GunP',   move:'powder', density:88,  burn:true,  colors:[rgba(80,80,64),rgba(72,72,56),rgba(88,88,72),rgba(64,64,48)] },
+};
+
+// Display colors for buttons (CSS RGB)
+const BTN_COLORS = {
+  [EMPTY]:'#2e1a1a', [SAND]:'#f5c642', [WATER]:'#3030f0', [STONE]:'#888',
+  [FIRE]:'#ffa500', [OIL]:'#604020', [PLANT]:'#20a020', [STEAM]:'#c0d0e0',
+  [WOOD]:'#a06020', [SALT]:'#f0f0f0', [ACID]:'#20f020', [LAVA]:'#ff4000', [GUNPOWDER]:'#505040'
+};
+
+// --- Grid ---
+const size = W * H;
+const grid = new Uint8Array(size);
+const lifetime = new Int16Array(size);
+const updated = new Uint8Array(size);
+const color = new Uint32Array(size);
+let frameId = 0;
+
+function idx(x, y) { return y * W + x; }
+function inBounds(x, y) { return x >= 0 && x < W && y >= 0 && y < H; }
+function get(x, y) { return inBounds(x, y) ? grid[idx(x, y)] : -1; }
+function isEmpty(x, y) { return inBounds(x, y) && grid[idx(x, y)] === EMPTY; }
+
+function setCell(x, y, mat) {
+  if (!inBounds(x, y)) return;
+  const i = idx(x, y);
+  grid[i] = mat;
+  if (mat === EMPTY) { color[i] = MAT[EMPTY].colors[0]; lifetime[i] = 0; return; }
+  const m = MAT[mat];
+  color[i] = m.colors[(Math.random() * m.colors.length) | 0];
+  if (mat === FIRE) lifetime[i] = 60 + (Math.random() * 40) | 0;
+  else if (mat === STEAM) lifetime[i] = 80 + (Math.random() * 60) | 0;
+  else lifetime[i] = 0;
+}
+
+function swap(x1, y1, x2, y2) {
+  const i1 = idx(x1, y1), i2 = idx(x2, y2);
+  const tg = grid[i1]; grid[i1] = grid[i2]; grid[i2] = tg;
+  const tc = color[i1]; color[i1] = color[i2]; color[i2] = tc;
+  const tl = lifetime[i1]; lifetime[i1] = lifetime[i2]; lifetime[i2] = tl;
+  updated[i1] = frameId & 0xFF; updated[i2] = frameId & 0xFF;
+}
+
+// --- Physics ---
+function canDisplace(mover, x, y) {
+  if (!inBounds(x, y)) return false;
+  const target = grid[idx(x, y)];
+  if (target === EMPTY) return true;
+  const mm = MAT[mover], mt = MAT[target];
+  if (mm.move === 'powder' || mm.move === 'liquid') {
+    if (mt.move === 'liquid' && mm.density > mt.density) return true;
+  }
+  return false;
+}
+
+function tryMove(x, y, nx, ny) {
+  if (!inBounds(nx, ny)) return false;
+  const target = grid[idx(nx, ny)];
+  if (target === EMPTY) { swap(x, y, nx, ny); return true; }
+  const src = grid[idx(x, y)];
+  if (MAT[target].move === 'liquid' && MAT[src].density > MAT[target].density) {
+    swap(x, y, nx, ny); return true;
+  }
+  return false;
+}
+
+function updatePowder(x, y) {
+  if (tryMove(x, y, x, y + 1)) return;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  if (tryMove(x, y, x + dir, y + 1)) return;
+  if (tryMove(x, y, x - dir, y + 1)) return;
+}
+
+function updateLiquid(x, y) {
+  if (tryMove(x, y, x, y + 1)) return;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  if (tryMove(x, y, x + dir, y + 1)) return;
+  if (tryMove(x, y, x - dir, y + 1)) return;
+  const spread = (Math.random() * 3 + 1) | 0;
+  for (let s = 1; s <= spread; s++) {
+    if (tryMove(x, y, x + dir * s, y)) return;
+  }
+  for (let s = 1; s <= spread; s++) {
+    if (tryMove(x, y, x - dir * s, y)) return;
+  }
+}
+
+function updateGasUp(x, y) {
+  if (tryMove(x, y, x, y - 1)) return;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  if (tryMove(x, y, x + dir, y - 1)) return;
+  if (tryMove(x, y, x - dir, y - 1)) return;
+  if (Math.random() < 0.3) {
+    if (tryMove(x, y, x + dir, y)) return;
+    tryMove(x, y, x - dir, y);
+  }
+}
+
+// --- Interactions ---
+function explode(cx, cy, radius) {
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      if (dx * dx + dy * dy <= radius * radius) {
+        const nx = cx + dx, ny = cy + dy;
+        if (inBounds(nx, ny)) {
+          const t = grid[idx(nx, ny)];
+          if (t !== EMPTY && t !== STONE) {
+            if (Math.random() < 0.3) setCell(nx, ny, FIRE);
+            else setCell(nx, ny, EMPTY);
+          }
+        }
+      }
+    }
+  }
+}
+
+function neighbors4(x, y) {
+  return [[x-1,y],[x+1,y],[x,y-1],[x,y+1]];
+}
+
+function interact(x, y, mat) {
+  const i = idx(x, y);
+  const nb = neighbors4(x, y);
+
+  if (mat === FIRE) {
+    lifetime[i]--;
+    // fire color shifts with lifetime
+    const l = lifetime[i];
+    if (l > 40) color[i] = rgba(255,165,0);       // bright orange
+    else if (l > 20) color[i] = rgba(224,80,0);    // red-orange
+    else color[i] = rgba(160,32,0);                // dark red
+    if (lifetime[i] <= 0) { setCell(x, y, EMPTY); return; }
+    for (const [nx, ny] of nb) {
+      const t = get(nx, ny);
+      if (t === OIL || t === GUNPOWDER) {
+        if (t === GUNPOWDER) { explode(nx, ny, 6); return; }
+        if (Math.random() < 0.4) setCell(nx, ny, FIRE);
+      } else if ((t === WOOD || t === PLANT) && Math.random() < 0.05) {
+        setCell(nx, ny, FIRE);
+      } else if (t === WATER) {
+        setCell(x, y, STEAM);
+        setCell(nx, ny, EMPTY);
+        return;
+      }
+    }
+  }
+
+  if (mat === STEAM) {
+    lifetime[i]--;
+    if (lifetime[i] <= 0) { setCell(x, y, EMPTY); return; }
+  }
+
+  if (mat === WATER) {
+    for (const [nx, ny] of nb) {
+      const t = get(nx, ny);
+      if (t === PLANT && Math.random() < 0.01) {
+        // grow plant into an adjacent empty cell
+        for (const [gx, gy] of neighbors4(nx, ny)) {
+          if (isEmpty(gx, gy) && Math.random() < 0.3) {
+            setCell(gx, gy, PLANT); break;
+          }
+        }
+      } else if (t === SALT) {
+        setCell(x, y, EMPTY);
+        setCell(nx, ny, EMPTY);
+        return;
+      }
+    }
+  }
+
+  if (mat === LAVA) {
+    for (const [nx, ny] of nb) {
+      const t = get(nx, ny);
+      if (t === WATER) {
+        setCell(nx, ny, STEAM);
+        if (Math.random() < 0.3) setCell(x, y, STONE);
+        return;
+      } else if ((t === OIL || t === WOOD || t === PLANT || t === GUNPOWDER) && Math.random() < 0.3) {
+        if (t === GUNPOWDER) { explode(nx, ny, 6); return; }
+        setCell(nx, ny, FIRE);
+      }
+    }
+  }
+
+  if (mat === ACID) {
+    for (const [nx, ny] of nb) {
+      const t = get(nx, ny);
+      if (t !== EMPTY && t !== ACID && t !== STONE && Math.random() < 0.1) {
+        setCell(nx, ny, EMPTY);
+        if (Math.random() < 0.4) setCell(x, y, EMPTY);
+        return;
+      }
+    }
+  }
+}
+
+// --- Simulation Step ---
+function simulate() {
+  frameId++;
+  const fid = frameId & 0xFF;
+  for (let y = H - 1; y >= 0; y--) {
+    const leftToRight = Math.random() < 0.5;
+    for (let xi = 0; xi < W; xi++) {
+      const x = leftToRight ? xi : (W - 1 - xi);
+      const i = idx(x, y);
+      if (updated[i] === fid) continue;
+      const mat = grid[i];
+      if (mat === EMPTY) continue;
+      updated[i] = fid;
+      // interactions first
+      interact(x, y, mat);
+      if (grid[i] !== mat) continue; // cell changed by interaction
+      // movement
+      const move = MAT[mat].move;
+      if (move === 'powder') updatePowder(x, y);
+      else if (move === 'liquid') updateLiquid(x, y);
+      else if (move === 'gas_up') updateGasUp(x, y);
+    }
+  }
+}
+
+// --- Rendering ---
+const canvas = document.getElementById('c');
+canvas.width = CW; canvas.height = CH;
+const ctx = canvas.getContext('2d');
+const imgData = ctx.createImageData(CW, CH);
+const pixels = new Uint32Array(imgData.data.buffer);
+
+function render() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const c = color[idx(x, y)] || MAT[EMPTY].colors[0];
+      const px = x * SCALE, py = y * SCALE;
+      for (let dy = 0; dy < SCALE; dy++) {
+        const rowOff = (py + dy) * CW + px;
+        for (let dx = 0; dx < SCALE; dx++) {
+          pixels[rowOff + dx] = c;
+        }
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// --- Input ---
+let selectedMat = SAND;
+let brushSize = 3;
+let mouseDown = false;
+let lastMx = -1, lastMy = -1;
+let paused = false;
+
+function canvasToGrid(e) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = CW / rect.width, sy = CH / rect.height;
+  return [
+    ((e.clientX - rect.left) * sx / SCALE) | 0,
+    ((e.clientY - rect.top) * sy / SCALE) | 0
+  ];
+}
+
+function paint(gx, gy) {
+  const r = brushSize;
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy <= r * r) {
+        const nx = gx + dx, ny = gy + dy;
+        if (inBounds(nx, ny)) {
+          if (selectedMat === EMPTY || grid[idx(nx, ny)] === EMPTY) {
+            setCell(nx, ny, selectedMat);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Bresenham line for smooth drawing
+function paintLine(x0, y0, x1, y1) {
+  const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  while (true) {
+    paint(x0, y0);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 < dx) { err += dx; y0 += sy; }
+  }
+}
+
+canvas.addEventListener('mousedown', e => {
+  mouseDown = true;
+  const [gx, gy] = canvasToGrid(e);
+  lastMx = gx; lastMy = gy;
+  paint(gx, gy);
+});
+canvas.addEventListener('mousemove', e => {
+  if (!mouseDown) return;
+  const [gx, gy] = canvasToGrid(e);
+  paintLine(lastMx, lastMy, gx, gy);
+  lastMx = gx; lastMy = gy;
+});
+canvas.addEventListener('mouseup', () => { mouseDown = false; lastMx = lastMy = -1; });
+canvas.addEventListener('mouseleave', () => { mouseDown = false; lastMx = lastMy = -1; });
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const [gx, gy] = canvasToGrid(t);
+  mouseDown = true; lastMx = gx; lastMy = gy;
+  paint(gx, gy);
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!mouseDown) return;
+  const t = e.touches[0];
+  const [gx, gy] = canvasToGrid(t);
+  paintLine(lastMx, lastMy, gx, gy);
+  lastMx = gx; lastMy = gy;
+}, { passive: false });
+canvas.addEventListener('touchend', () => { mouseDown = false; lastMx = lastMy = -1; });
+
+// --- UI ---
+const toolbar = document.getElementById('toolbar');
+const matOrder = [EMPTY, SAND, WATER, STONE, FIRE, OIL, PLANT, STEAM, WOOD, SALT, ACID, LAVA, GUNPOWDER];
+const matBtns = {};
+
+matOrder.forEach(id => {
+  const btn = document.createElement('div');
+  btn.className = 'mat-btn' + (id === selectedMat ? ' active' : '');
+  btn.style.background = BTN_COLORS[id];
+  btn.textContent = MAT[id].name;
+  if (id === SALT || id === STEAM) btn.style.color = '#333';
+  btn.onclick = () => {
+    Object.values(matBtns).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMat = id;
+  };
+  matBtns[id] = btn;
+  toolbar.appendChild(btn);
+});
+
+// Brush size
+const ctrlBrush = document.createElement('div');
+ctrlBrush.className = 'ctrl';
+ctrlBrush.innerHTML = '<label>Brush</label><input type="range" min="1" max="12" value="3" id="brushSlider"><span id="brushVal">3</span>';
+toolbar.appendChild(ctrlBrush);
+const brushSlider = document.getElementById('brushSlider');
+const brushVal = document.getElementById('brushVal');
+brushSlider.oninput = () => { brushSize = +brushSlider.value; brushVal.textContent = brushSize; };
+
+// Pause
+const pauseBtn = document.createElement('button');
+pauseBtn.className = 'action';
+pauseBtn.textContent = 'Pause';
+pauseBtn.onclick = () => { paused = !paused; pauseBtn.textContent = paused ? 'Resume' : 'Pause'; };
+toolbar.appendChild(pauseBtn);
+
+// Clear
+const clearBtn = document.createElement('button');
+clearBtn.className = 'action';
+clearBtn.textContent = 'Clear';
+clearBtn.onclick = () => {
+  grid.fill(0); lifetime.fill(0); updated.fill(0);
+  color.fill(MAT[EMPTY].colors[0]);
+};
+toolbar.appendChild(clearBtn);
+
+// FPS
+const fpsEl = document.createElement('span');
+fpsEl.id = 'fps';
+toolbar.appendChild(fpsEl);
+
+// Keyboard shortcuts: 1-9,0 for materials
+document.addEventListener('keydown', e => {
+  const num = e.key === '0' ? 10 : parseInt(e.key);
+  if (num >= 1 && num <= matOrder.length) {
+    const id = matOrder[num - 1];
+    Object.values(matBtns).forEach(b => b.classList.remove('active'));
+    matBtns[id].classList.add('active');
+    selectedMat = id;
+  }
+  if (e.key === ' ') { paused = !paused; pauseBtn.textContent = paused ? 'Resume' : 'Pause'; e.preventDefault(); }
+});
+
+// --- Init colors ---
+color.fill(MAT[EMPTY].colors[0]);
+
+// --- Main Loop ---
+let lastTime = performance.now(), fpsAccum = 0, fpsFrames = 0;
+
+function loop(now) {
+  const dt = now - lastTime; lastTime = now;
+  fpsAccum += dt; fpsFrames++;
+  if (fpsAccum >= 500) {
+    fpsEl.textContent = 'FPS: ' + (1000 * fpsFrames / fpsAccum).toFixed(0);
+    fpsAccum = 0; fpsFrames = 0;
+  }
+  if (!paused) simulate();
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

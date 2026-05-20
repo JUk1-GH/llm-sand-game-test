@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dustfall Foundry</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero-panel">
+        <div class="hero-copy">
+          <p class="eyebrow">HTML/CSS + 物理材质系统</p>
+          <h1>Dustfall Foundry</h1>
+          <p class="lede">
+            一个可直接离线运行的落沙实验场。材料拥有密度、温度、可燃性、
+            腐蚀性与生命周期，支持液体流动、气体上浮、燃烧和相变。
+          </p>
+        </div>
+
+        <div class="sim-shell">
+          <canvas
+            id="sim-canvas"
+            class="sim-canvas"
+            width="180"
+            height="108"
+            aria-label="落沙模拟画布"
+          ></canvas>
+          <div class="sim-overlay">
+            <div class="overlay-chip">
+              <span>当前材质</span>
+              <strong id="current-material-label">砂</strong>
+            </div>
+            <div class="overlay-chip">
+              <span>笔刷</span>
+              <strong id="brush-size-label">5</strong>
+            </div>
+            <div class="overlay-chip">
+              <span>速度</span>
+              <strong id="speed-label">2x</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="control-panel">
+        <section class="panel-block">
+          <div class="panel-head">
+            <h2>工具箱</h2>
+            <p>拖拽或点击即可投放材质，按住可持续喷射。</p>
+          </div>
+          <div id="material-grid" class="material-grid" aria-label="材质选择"></div>
+        </section>
+
+        <section class="panel-block">
+          <div class="panel-head">
+            <h2>控制</h2>
+            <p>速度控制物理步进次数，笔刷决定投放半径。</p>
+          </div>
+
+          <label class="range-control" for="brush-size">
+            <span>笔刷大小</span>
+            <input id="brush-size" type="range" min="1" max="10" value="5" />
+          </label>
+
+          <label class="range-control" for="sim-speed">
+            <span>模拟速度</span>
+            <input id="sim-speed" type="range" min="1" max="4" value="2" />
+          </label>
+
+          <div class="button-row">
+            <button id="toggle-sim" class="action-button action-button--primary" type="button">
+              暂停
+            </button>
+            <button id="clear-world" class="action-button" type="button">清空</button>
+          </div>
+        </section>
+
+        <section class="panel-block">
+          <div class="panel-head">
+            <h2>预设场景</h2>
+            <p>快速填充实验地形，直接观察材质交互。</p>
+          </div>
+
+          <div class="preset-grid">
+            <button class="preset-card" type="button" data-preset="dunes">
+              <strong>沙丘试验</strong>
+              <span>砂、水和油的分层流动</span>
+            </button>
+            <button class="preset-card" type="button" data-preset="volcano">
+              <strong>火山口</strong>
+              <span>熔岩、蒸汽与冷却石化</span>
+            </button>
+            <button class="preset-card" type="button" data-preset="lab">
+              <strong>化工车间</strong>
+              <span>酸液、木材与燃烧扩散</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-block">
+          <div class="panel-head">
+            <h2>状态</h2>
+            <p>实时反馈粒子数量与当前模拟状态。</p>
+          </div>
+
+          <dl class="stats-grid">
+            <div>
+              <dt>活动粒子</dt>
+              <dd id="particle-count">0</dd>
+            </div>
+            <div>
+              <dt>平均温度</dt>
+              <dd id="avg-temp">0°C</dd>
+            </div>
+            <div>
+              <dt>活跃火源</dt>
+              <dd id="fire-count">0</dd>
+            </div>
+            <div>
+              <dt>运行状态</dt>
+              <dd id="sim-state">运行中</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel-block panel-block--compact">
+          <div class="panel-head">
+            <h2>快捷键</h2>
+          </div>
+          <p class="shortcut-line">
+            <code>1-0</code> 选材质，<code>[</code> / <code>]</code> 调笔刷，<code>Space</code> 暂停。
+          </p>
+        </section>
+      </aside>
+    </main>
+
+    <script src="./main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>落沙实验室</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Falling Matter Lab</p>
+          <h1>落沙实验室</h1>
+        </div>
+        <div class="status-strip" aria-live="polite">
+          <span><strong id="fps">0</strong> FPS</span>
+          <span><strong id="particles">0</strong> 粒子</span>
+          <span><strong id="world-size">0 x 0</strong></span>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="simulation-panel" aria-label="落沙模拟画布">
+          <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="world" aria-label="落沙模拟区域"></canvas>
+            <div class="cursor-preview" id="cursor-preview" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <aside class="control-panel" aria-label="控制面板">
+          <section class="tool-section">
+            <div class="section-title">
+              <h2>材质</h2>
+              <span id="selected-label">沙子</span>
+            </div>
+            <div class="material-grid" id="material-grid"></div>
+          </section>
+
+          <section class="tool-section">
+            <div class="section-title">
+              <h2>笔刷</h2>
+              <span id="brush-value">9</span>
+            </div>
+            <label class="range-row">
+              <span>半径</span>
+              <input id="brush-size" type="range" min="1" max="28" value="9" />
+            </label>
+            <div class="segmented" role="group" aria-label="笔刷形状">
+              <button class="segment active" data-brush="circle" type="button">圆形</button>
+              <button class="segment" data-brush="square" type="button">方形</button>
+              <button class="segment" data-brush="spray" type="button">喷洒</button>
+            </div>
+          </section>
+
+          <section class="tool-section">
+            <div class="section-title">
+              <h2>物理</h2>
+              <span id="speed-value">1.0x</span>
+            </div>
+            <label class="range-row">
+              <span>速度</span>
+              <input id="sim-speed" type="range" min="0" max="3" value="1" step="0.25" />
+            </label>
+            <div class="button-grid">
+              <button id="toggle-pause" class="command primary" type="button" aria-pressed="false">暂停</button>
+              <button id="step-once" class="command" type="button">单步</button>
+              <button id="clear-world" class="command danger" type="button">清空</button>
+              <button id="cool-world" class="command" type="button">降温</button>
+            </div>
+          </section>
+
+          <section class="tool-section">
+            <div class="section-title">
+              <h2>场景</h2>
+              <span>预设</span>
+            </div>
+            <div class="button-grid">
+              <button class="command" data-scene="rain" type="button">雨幕</button>
+              <button class="command" data-scene="volcano" type="button">火山</button>
+              <button class="command" data-scene="garden" type="button">花园</button>
+              <button class="command" data-scene="pipes" type="button">管道</button>
+            </div>
+          </section>
+
+          <section class="tool-section inspector">
+            <div class="section-title">
+              <h2>探针</h2>
+              <span id="probe-coords">--</span>
+            </div>
+            <dl>
+              <div>
+                <dt>材质</dt>
+                <dd id="probe-material">空</dd>
+              </div>
+              <div>
+                <dt>状态</dt>
+                <dd id="probe-state">--</dd>
+              </div>
+              <div>
+                <dt>温度</dt>
+                <dd id="probe-temp">--</dd>
+              </div>
+              <div>
+                <dt>密度</dt>
+                <dd id="probe-density">--</dd>
+              </div>
+            </dl>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="./engine.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

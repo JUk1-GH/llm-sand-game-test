@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>落沙模拟游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>落沙模拟游戏</h1>
+        <div class="controls">
+            <div class="material-buttons">
+                <button class="material-btn active" data-material="sand">沙子</button>
+                <button class="material-btn" data-material="water">水</button>
+                <button class="material-btn" data-material="stone">石头</button>
+                <button class="material-btn" data-material="fire">火</button>
+                <button class="material-btn" data-material="smoke">烟</button>
+                <button class="material-btn" data-material="acid">酸</button>
+            </div>
+            <div class="game-controls">
+                <button id="pauseBtn">暂停</button>
+                <button id="clearBtn">清除</button>
+                <button id="resetBtn">重置</button>
+            </div>
+        </div>
+        <canvas id="sandCanvas" width="600" height="400"></canvas>
+        <div class="info">
+            <p>左键放置粒子 | 右键擦除 | 选择材质后点击画布</p>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

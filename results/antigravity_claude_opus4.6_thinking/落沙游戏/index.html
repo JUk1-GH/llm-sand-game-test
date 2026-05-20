@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="一个基于物理引擎的落沙模拟游戏，支持多种材质和物理交互">
+    <title>落沙模拟器 | Falling Sand Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header id="header">
+            <div class="header-left">
+                <h1 id="title">
+                    <span class="title-icon">⏳</span>
+                    落沙模拟器
+                </h1>
+                <span class="subtitle">Falling Sand Simulator</span>
+            </div>
+            <div class="header-right">
+                <div id="fps-display" class="stat-badge">
+                    <span class="stat-label">FPS</span>
+                    <span id="fps-value" class="stat-value">60</span>
+                </div>
+                <div id="particle-count-display" class="stat-badge">
+                    <span class="stat-label">粒子</span>
+                    <span id="particle-count-value" class="stat-value">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Left Toolbar -->
+            <aside id="toolbar">
+                <div class="toolbar-section">
+                    <h2 class="toolbar-title">材质选择</h2>
+                    <div id="material-grid" class="material-grid">
+                        <!-- Materials will be injected by JS -->
+                    </div>
+                </div>
+
+                <div class="toolbar-section">
+                    <h2 class="toolbar-title">画笔大小</h2>
+                    <div class="brush-control">
+                        <input type="range" id="brush-size" min="1" max="15" value="3" class="slider">
+                        <div class="brush-preview-container">
+                            <div id="brush-preview" class="brush-preview"></div>
+                            <span id="brush-size-label" class="brush-size-label">3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="toolbar-section">
+                    <h2 class="toolbar-title">控制</h2>
+                    <div class="control-buttons">
+                        <button id="btn-play-pause" class="control-btn primary" title="播放/暂停 (Space)">
+                            <span class="btn-icon">▶</span>
+                            <span class="btn-text">播放</span>
+                        </button>
+                        <button id="btn-step" class="control-btn" title="单步执行 (S)">
+                            <span class="btn-icon">⏭</span>
+                            <span class="btn-text">单步</span>
+                        </button>
+                        <button id="btn-clear" class="control-btn danger" title="清除画布 (C)">
+                            <span class="btn-icon">🗑</span>
+                            <span class="btn-text">清除</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="toolbar-section">
+                    <h2 class="toolbar-title">模拟速度</h2>
+                    <div class="speed-control">
+                        <input type="range" id="sim-speed" min="1" max="5" value="3" class="slider">
+                        <span id="speed-label" class="speed-label">3x</span>
+                    </div>
+                </div>
+
+                <div class="toolbar-section shortcuts-section">
+                    <h2 class="toolbar-title">快捷键</h2>
+                    <div class="shortcuts-list">
+                        <div class="shortcut"><kbd>Space</kbd> 播放/暂停</div>
+                        <div class="shortcut"><kbd>C</kbd> 清除</div>
+                        <div class="shortcut"><kbd>S</kbd> 单步</div>
+                        <div class="shortcut"><kbd>1-9</kbd> 选材质</div>
+                        <div class="shortcut"><kbd>[ ]</kbd> 画笔大小</div>
+                        <div class="shortcut"><kbd>E</kbd> 橡皮擦</div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <div id="canvas-container">
+                <canvas id="sand-canvas"></canvas>
+                <div id="canvas-overlay" class="canvas-overlay">
+                    <div class="overlay-content">
+                        <span class="overlay-icon">🎨</span>
+                        <p>点击并拖动来绘制粒子</p>
+                        <p class="overlay-hint">选择左侧的材质开始创作</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Material Info Tooltip -->
+        <div id="material-tooltip" class="material-tooltip hidden">
+            <div class="tooltip-name"></div>
+            <div class="tooltip-desc"></div>
+            <div class="tooltip-props"></div>
+        </div>
+    </div>
+
+    <script src="engine.js"></script>
+    <script src="materials.js"></script>
+    <script src="renderer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

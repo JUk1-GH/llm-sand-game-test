@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>落沙模拟器</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;500;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      padding: 16px 24px;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #e6c86e, #ffd93d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 1px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    #canvas-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #canvas-container canvas {
+      display: block;
+    }
+
+    .controls {
+      padding: 16px 24px;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .material-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.08);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 80px;
+    }
+
+    .material-btn:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateY(-2px);
+    }
+
+    .material-btn.active {
+      border-color: var(--material-color);
+      background: rgba(255,255,255,0.12);
+      box-shadow: 0 0 20px var(--material-glow);
+    }
+
+    .material-btn .swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .material-btn .label {
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .clear-btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-left: 20px;
+    }
+
+    .clear-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(231,76,60,0.4);
+    }
+
+    .hint {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.9rem;
+      opacity: 0.5;
+      pointer-events: none;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>落沙模拟器</h1>
+      <div class="stats">
+        <span>粒子: <strong id="particle-count">0</strong></span>
+        <span>材质: <strong id="current-material">普通沙</strong></span>
+      </div>
+    </header>
+
+    <div id="canvas-container">
+      <div class="hint">点击或拖拽生成沙子</div>
+    </div>
+
+    <div class="controls">
+      <button class="material-btn active" data-material="sand" style="--material-color: #e6c86e; --material-glow: rgba(230,200,110,0.3)">
+        <div class="swatch" style="background: #e6c86e"></div>
+        <span class="label">普通沙</span>
+      </button>
+      <button class="material-btn" data-material="coarse" style="--material-color: #a67c52; --material-glow: rgba(166,124,82,0.3)">
+        <div class="swatch" style="background: #a67c52"></div>
+        <span class="label">粗沙</span>
+      </button>
+      <button class="material-btn" data-material="salt" style="--material-color: #f5f5f5; --material-glow: rgba(245,245,245,0.3)">
+        <div class="swatch" style="background: #f5f5f5"></div>
+        <span class="label">盐</span>
+      </button>
+      <button class="material-btn" data-material="sugar" style="--material-color: #ffd93d; --material-glow: rgba(255,217,61,0.3)">
+        <div class="swatch" style="background: #ffd93d"></div>
+        <span class="label">糖</span>
+      </button>
+      <button class="material-btn" data-material="charcoal" style="--material-color: #2d2d2d; --material-glow: rgba(45,45,45,0.3)">
+        <div class="swatch" style="background: #2d2d2d"></div>
+        <span class="label">活性炭</span>
+      </button>
+      <button class="material-btn" data-material="rainbow" style="--material-color: #ff6b6b; --material-glow: rgba(255,107,107,0.3)">
+        <div class="swatch" style="background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3)"></div>
+        <span class="label">彩虹沙</span>
+      </button>
+      <button class="clear-btn" id="clear-btn">清除全部</button>
+    </div>
+  </div>
+
+  <script>
+    const MATERIALS = {
+      sand: {
+        name: '普通沙',
+        color: '#e6c86e',
+        size: 4,
+        density: 0.001,
+        friction: 0.1,
+        restitution: 0.05
+      },
+      coarse: {
+        name: '粗沙',
+        color: '#a67c52',
+        size: 6,
+        density: 0.002,
+        friction: 0.3,
+        restitution: 0.02
+      },
+      salt: {
+        name: '盐',
+        color: '#f5f5f5',
+        size: 3,
+        density: 0.0008,
+        friction: 0.05,
+        restitution: 0.1
+      },
+      sugar: {
+        name: '糖',
+        color: '#ffd93d',
+        size: 5,
+        density: 0.001,
+        friction: 0.08,
+        restitution: 0.08
+      },
+      charcoal: {
+        name: '活性炭',
+        color: '#2d2d2d',
+        size: 4,
+        density: 0.0015,
+        friction: 0.15,
+        restitution: 0.03
+      },
+      rainbow: {
+        name: '彩虹沙',
+        color: null,
+        colors: ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#a29bfe', '#6c5ce7'],
+        size: 4,
+        density: 0.001,
+        friction: 0.1,
+        restitution: 0.05
+      }
+    };
+
+    const MAX_PARTICLES = 2000;
+
+    const { Engine, Render, Runner, Bodies, Composite, Mouse, Events, Body } = Matter;
+
+    const container = document.getElementById('canvas-container');
+    const particleCountEl = document.getElementById('particle-count');
+    const currentMaterialEl = document.getElementById('current-material');
+
+    let currentMaterialKey = 'sand';
+    let engine, render, runner, mouse;
+    let particles = [];
+    let isMouseDown = false;
+    let hintShown = true;
+
+    function init() {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      engine = Engine.create({
+        gravity: { x: 0, y: 1 }
+      });
+
+      render = Render.create({
+        element: container,
+        engine: engine,
+        options: {
+          width,
+          height,
+          wireframes: false,
+          background: 'transparent',
+          pixelRatio: window.devicePixelRatio || 1
+        }
+      });
+
+      const wallThickness = 40;
+      const wallOptions = {
+        isStatic: true,
+        render: { fillStyle: '#0d1b2a' },
+        friction: 0.5
+      };
+
+      const leftWall = Bodies.rectangle(-wallThickness/2, height/2, wallThickness, height, wallOptions);
+      const rightWall = Bodies.rectangle(width + wallThickness/2, height/2, wallThickness, height, wallOptions);
+      const floor = Bodies.rectangle(width/2, height + wallThickness/2, width + wallThickness*2, wallThickness, wallOptions);
+
+      Composite.add(engine.world, [leftWall, rightWall, floor]);
+
+      mouse = Mouse.create(render.canvas);
+
+      Events.on(mouse, 'mousedown', () => { isMouseDown = true; hideHint(); });
+      Events.on(mouse, 'mouseup', () => { isMouseDown = false; });
+      Events.on(mouse, 'mousemove', (e) => {
+        if (isMouseDown && particles.length < MAX_PARTICLES) {
+          spawnParticle(mouse.position.x, mouse.position.y);
+        }
+      });
+
+      Events.on(render, 'afterRender', () => {
+        drawGlow();
+      });
+
+      Render.run(render);
+      runner = Runner.create();
+      Runner.run(runner, engine);
+
+      requestAnimationFrame(updateCount);
+    }
+
+    function hideHint() {
+      if (hintShown) {
+        document.querySelector('.hint').style.opacity = '0';
+        hintShown = false;
+      }
+    }
+
+    function drawGlow() {
+      const ctx = render.context;
+      particles.forEach(p => {
+        const mat = MATERIALS[currentMaterialKey];
+        let color = mat.color || mat.colors[Math.floor(Math.random() * mat.colors.length)];
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = color;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.position.x, p.position.y, p.circleRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function spawnParticle(x, y) {
+      const mat = MATERIALS[currentMaterialKey];
+      const color = mat.color || mat.colors[Math.floor(Math.random() * mat.colors.length)];
+
+      const particle = Bodies.circle(x, y, mat.size, {
+        density: mat.density,
+        friction: mat.friction,
+        restitution: mat.restitution,
+        render: {
+          fillStyle: color,
+          strokeStyle: color,
+          lineWidth: 0
+        }
+      });
+
+      particles.push(particle);
+      Composite.add(engine.world, particle);
+    }
+
+    function updateCount() {
+      particleCountEl.textContent = particles.length;
+      requestAnimationFrame(updateCount);
+    }
+
+    function selectMaterial(key) {
+      currentMaterialKey = key;
+      currentMaterialEl.textContent = MATERIALS[key].name;
+
+      document.querySelectorAll('.material-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.material === key);
+      });
+    }
+
+    function clearAll() {
+      particles.forEach(p => Composite.remove(engine.world, p));
+      particles = [];
+    }
+
+    document.querySelectorAll('.material-btn').forEach(btn => {
+      btn.addEventListener('click', () => selectMaterial(btn.dataset.material));
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', clearAll);
+
+    container.addEventListener('click', (e) => {
+      if (!isMouseDown && particles.length < MAX_PARTICLES) {
+        const rect = container.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        for (let i = 0; i < 5; i++) {
+          spawnParticle(
+            x + (Math.random() - 0.5) * 20,
+            y + (Math.random() - 0.5) * 10
+          );
+        }
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      render.canvas.width = width;
+      render.canvas.height = height;
+      render.options.width = width;
+      render.options.height = height;
+    });
+
+    init();
+  </script>
+</body>
+</html>

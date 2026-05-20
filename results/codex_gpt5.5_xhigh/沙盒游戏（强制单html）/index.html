@@ -1,0 +1,1793 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>落沙物理实验场</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090c0e;
+      --panel: #11161a;
+      --panel-2: #171d22;
+      --line: #2a333a;
+      --line-soft: rgba(255, 255, 255, 0.08);
+      --text: #edf4f1;
+      --muted: #9aa8a6;
+      --accent: #5fd0c4;
+      --accent-2: #e5c263;
+      --danger: #ff7043;
+      --ok: #8fce70;
+      --shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(95, 208, 196, 0.08), transparent 34%),
+        radial-gradient(circle at 85% 15%, rgba(229, 194, 99, 0.08), transparent 26%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      min-width: 320px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 306px minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 12px;
+      height: 100vh;
+      padding: 12px;
+    }
+
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 54px;
+      padding: 8px 10px 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(17, 22, 26, 0.94);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, transparent 0 32%, #dca949 32% 49%, #42a9d8 49% 66%, #c24d36 66% 100%);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      flex: 0 0 auto;
+      image-rendering: pixelated;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 760;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .stat {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      min-height: 30px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #0d1215;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .stat strong {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .panel {
+      grid-column: 1;
+      grid-row: 2;
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(17, 22, 26, 0.95);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .panel-scroll {
+      height: 100%;
+      overflow: auto;
+      padding: 12px;
+      scrollbar-color: #3d4a52 transparent;
+      scrollbar-width: thin;
+    }
+
+    .section + .section {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 740;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .materials {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .material {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    .material:hover {
+      border-color: rgba(95, 208, 196, 0.48);
+      background: #1d252a;
+    }
+
+    .material[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: rgba(95, 208, 196, 0.13);
+      box-shadow: inset 0 0 0 1px rgba(95, 208, 196, 0.26);
+    }
+
+    .material:active,
+    .icon-button:active,
+    .wide-button:active {
+      transform: translateY(1px);
+    }
+
+    .swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+    }
+
+    .material-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 690;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .tag {
+      padding: 3px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 720;
+      line-height: 1;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .icon-button,
+    .wide-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #151b20;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .icon-button {
+      width: 100%;
+      padding: 0;
+    }
+
+    .icon-button:hover,
+    .wide-button:hover {
+      border-color: rgba(229, 194, 99, 0.5);
+      background: #1f272d;
+    }
+
+    .icon-button[aria-pressed="true"] {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(95, 208, 196, 0.12);
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 28px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .readout {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .wide-button {
+      min-width: 0;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .stage {
+      position: relative;
+      grid-column: 2;
+      grid-row: 2;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 34%),
+        #050709;
+      box-shadow: var(--shadow);
+    }
+
+    .world-wrap {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .status-chip {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: calc(100% - 24px);
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 8px;
+      background: rgba(8, 12, 14, 0.72);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 720;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+
+    .status-chip .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+    }
+
+    .mini-map {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 132px;
+      height: 84px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 8px;
+      background: rgba(8, 12, 14, 0.72);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+
+    .mini-map canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .toast {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      max-width: min(360px, calc(100% - 24px));
+      padding: 9px 11px;
+      border: 1px solid rgba(95, 208, 196, 0.36);
+      border-radius: 8px;
+      background: rgba(13, 18, 21, 0.86);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 680;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 10px;
+      }
+
+      .topbar {
+        min-height: 50px;
+      }
+
+      .sub {
+        display: none;
+      }
+
+      .stats {
+        gap: 6px;
+      }
+
+      .stat {
+        min-height: 28px;
+        padding: 5px 7px;
+      }
+
+      .panel {
+        grid-column: 1;
+        grid-row: 3;
+        max-height: 34vh;
+      }
+
+      .stage {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .panel-scroll {
+        padding: 10px;
+      }
+
+      .materials {
+        grid-template-columns: repeat(4, minmax(112px, 1fr));
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
+      .toolbar {
+        grid-template-columns: repeat(5, minmax(42px, 1fr));
+      }
+
+      .button-grid {
+        grid-template-columns: repeat(4, minmax(90px, 1fr));
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding: 8px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-size: 16px;
+      }
+
+      .stats {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .stats .stat:nth-child(n+3) {
+        display: none;
+      }
+
+      .materials {
+        grid-template-columns: repeat(3, minmax(106px, 1fr));
+      }
+
+      .mini-map {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand" aria-label="落沙物理实验场">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1>落沙物理实验场</h1>
+          <div class="sub">Cellular Physics Sandbox</div>
+        </div>
+      </div>
+      <div class="stats" aria-live="polite">
+        <div class="stat">FPS <strong id="fps">60</strong></div>
+        <div class="stat">粒子 <strong id="particles">0</strong></div>
+        <div class="stat">格点 <strong id="gridSize">0×0</strong></div>
+        <div class="stat">引擎 <strong id="engineState">运行</strong></div>
+      </div>
+    </header>
+
+    <aside class="panel" aria-label="控制面板">
+      <div class="panel-scroll">
+        <section class="section">
+          <h2 class="section-title">Materials <span id="materialCount"></span></h2>
+          <div class="materials" id="materials"></div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Engine</h2>
+          <div class="toolbar">
+            <button class="icon-button" id="pauseBtn" type="button" title="暂停/运行" aria-label="暂停/运行" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path id="pauseIconA" d="M8 5v14"/><path id="pauseIconB" d="M16 5v14"/></svg>
+            </button>
+            <button class="icon-button" id="stepBtn" type="button" title="单步" aria-label="单步">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14"/><path d="m9 7 8 5-8 5z"/></svg>
+            </button>
+            <button class="icon-button" id="gravityBtn" type="button" title="重力反转" aria-label="重力反转" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"/><path d="m6 15 6 6 6-6"/><path d="m18 9-6-6-6 6"/></svg>
+            </button>
+            <button class="icon-button" id="eraseBtn" type="button" title="擦除" aria-label="擦除" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 21 10-10"/><path d="m22 7-5-5L3 16l5 5h8"/><path d="M14 4 20 10"/></svg>
+            </button>
+            <button class="icon-button" id="clearBtn" type="button" title="清空" aria-label="清空">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Brush</h2>
+          <div class="control">
+            <label class="control-row" for="brushRange"><span>半径</span><span class="readout" id="brushValue">8</span></label>
+            <input id="brushRange" type="range" min="1" max="32" value="8">
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Simulation</h2>
+          <div class="control">
+            <label class="control-row" for="speedRange"><span>速度</span><span class="readout" id="speedValue">4</span></label>
+            <input id="speedRange" type="range" min="1" max="10" value="4">
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">World</h2>
+          <div class="button-grid">
+            <button class="wide-button" id="seedBtn" type="button">重置世界</button>
+            <button class="wide-button" id="rainBtn" type="button">云层雨幕</button>
+            <button class="wide-button" id="saveBtn" type="button">保存世界</button>
+            <button class="wide-button" id="loadBtn" type="button">读取世界</button>
+            <button class="wide-button" id="shotBtn" type="button">导出 PNG</button>
+            <button class="wide-button" id="compactBtn" type="button">沉降一次</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <main class="stage" aria-label="落沙模拟世界">
+      <div class="world-wrap" id="worldWrap">
+        <canvas id="world"></canvas>
+      </div>
+      <div class="status-chip" id="selectedChip">
+        <span class="swatch" id="chipSwatch"></span>
+        <span id="chipText">沙</span>
+      </div>
+      <div class="mini-map" aria-hidden="true">
+        <canvas id="mini"></canvas>
+      </div>
+      <div class="toast" id="toast"></div>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("world");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const miniCanvas = document.getElementById("mini");
+      const miniCtx = miniCanvas.getContext("2d", { alpha: false });
+      const wrap = document.getElementById("worldWrap");
+      const materialsEl = document.getElementById("materials");
+      const chipSwatch = document.getElementById("chipSwatch");
+      const chipText = document.getElementById("chipText");
+      const toastEl = document.getElementById("toast");
+      const fpsEl = document.getElementById("fps");
+      const particlesEl = document.getElementById("particles");
+      const gridSizeEl = document.getElementById("gridSize");
+      const engineStateEl = document.getElementById("engineState");
+      const materialCountEl = document.getElementById("materialCount");
+      const brushRange = document.getElementById("brushRange");
+      const brushValue = document.getElementById("brushValue");
+      const speedRange = document.getElementById("speedRange");
+      const speedValue = document.getElementById("speedValue");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const stepBtn = document.getElementById("stepBtn");
+      const gravityBtn = document.getElementById("gravityBtn");
+      const eraseBtn = document.getElementById("eraseBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const seedBtn = document.getElementById("seedBtn");
+      const rainBtn = document.getElementById("rainBtn");
+      const saveBtn = document.getElementById("saveBtn");
+      const loadBtn = document.getElementById("loadBtn");
+      const shotBtn = document.getElementById("shotBtn");
+      const compactBtn = document.getElementById("compactBtn");
+      const pauseIconA = document.getElementById("pauseIconA");
+      const pauseIconB = document.getElementById("pauseIconB");
+
+      const CELL_SIZE = 4;
+      const STORAGE_KEY = "single-file-falling-sand-world-v1";
+      const EMPTY = 0;
+      const SAND = 1;
+      const WATER = 2;
+      const STONE = 3;
+      const WOOD = 4;
+      const FIRE = 5;
+      const SMOKE = 6;
+      const OIL = 7;
+      const LAVA = 8;
+      const ACID = 9;
+      const STEAM = 10;
+      const ICE = 11;
+      const SALT = 12;
+      const SEED = 13;
+      const PLANT = 14;
+      const METAL = 15;
+      const GLASS = 16;
+
+      const stateName = {
+        void: "空",
+        powder: "粉",
+        liquid: "液",
+        solid: "固",
+        gas: "气",
+        energy: "焰"
+      };
+
+      const materials = [
+        { id: EMPTY, name: "空", state: "void", density: 0, palette: ["#050709"], hidden: true },
+        { id: SAND, name: "沙", state: "powder", density: 62, palette: ["#c99735", "#d7ad55", "#b7832c", "#e4c16d"], update: updateSand },
+        { id: WATER, name: "水", state: "liquid", density: 28, palette: ["#2b8ed8", "#46a9ef", "#1b6fb5", "#72c8ff"], update: updateWater },
+        { id: STONE, name: "石", state: "solid", density: 110, palette: ["#69747a", "#535e64", "#7f898d", "#454d52"], update: updateFixed },
+        { id: WOOD, name: "木", state: "solid", density: 74, palette: ["#8b5a2e", "#a46a36", "#6f4525", "#bf7a3d"], flammable: 88, corrodible: 28, update: updateWood },
+        { id: FIRE, name: "火", state: "energy", density: 3, palette: ["#fff2a8", "#ffcf58", "#ff7a2e", "#d93019"], life: [16, 46], update: updateFire },
+        { id: SMOKE, name: "烟", state: "gas", density: 2, palette: ["#5b6467", "#727d7f", "#444b4e", "#879092"], life: [65, 130], update: updateSmoke },
+        { id: OIL, name: "油", state: "liquid", density: 22, palette: ["#27231b", "#3d3627", "#5d4a2a", "#151713"], flammable: 98, corrodible: 8, update: updateOil },
+        { id: LAVA, name: "岩浆", state: "liquid", density: 88, palette: ["#ff4d1f", "#ff8d24", "#c92613", "#ffd166"], update: updateLava },
+        { id: ACID, name: "酸", state: "liquid", density: 31, palette: ["#9af26e", "#c4ff71", "#65c745", "#e5ff9c"], update: updateAcid },
+        { id: STEAM, name: "蒸汽", state: "gas", density: 1, palette: ["#d7f2f3", "#b9dadd", "#ffffff", "#9ec4ca"], life: [55, 120], update: updateSteam },
+        { id: ICE, name: "冰", state: "solid", density: 42, palette: ["#a8e7ff", "#d4f7ff", "#72badb", "#c4edf7"], corrodible: 12, update: updateIce },
+        { id: SALT, name: "盐", state: "powder", density: 58, palette: ["#f0f0dc", "#d7d7c8", "#ffffff", "#c6c7bd"], update: updateSalt },
+        { id: SEED, name: "种子", state: "powder", density: 55, palette: ["#6d8731", "#89a848", "#4f6722", "#a0bf5a"], flammable: 45, corrodible: 36, update: updateSeed },
+        { id: PLANT, name: "植物", state: "solid", density: 46, palette: ["#3e9d4b", "#67bd5b", "#23713b", "#8fd36f"], flammable: 82, corrodible: 42, update: updatePlant },
+        { id: METAL, name: "金属", state: "solid", density: 125, palette: ["#a8adb0", "#d3d6d6", "#767d83", "#545b60"], corrodible: 4, update: updateMetal },
+        { id: GLASS, name: "玻璃", state: "solid", density: 102, palette: ["#bfe6e1", "#e8ffff", "#85b9b2", "#d4fff4"], corrodible: 2, update: updateFixed }
+      ];
+
+      const paintableIds = materials.filter((material) => !material.hidden).map((material) => material.id);
+      const rgbPalettes = materials.map((material) => material.palette.map(hexToRgb));
+      const materialButtons = new Map();
+      let width = 0;
+      let height = 0;
+      let cells = new Uint8Array(0);
+      let variants = new Uint8Array(0);
+      let life = new Uint16Array(0);
+      let moved = new Uint32Array(0);
+      let imageData = null;
+      let tick = 1;
+      let selected = SAND;
+      let eraseMode = false;
+      let paused = false;
+      let invertedGravity = false;
+      let brushSize = Number(brushRange.value);
+      let stepsPerFrame = Number(speedRange.value);
+      let pointer = { active: false, x: -1, y: -1, erase: false };
+      let lastFrame = performance.now();
+      let fpsSmoothed = 60;
+      let statCountdown = 0;
+      let lastMiniRender = 0;
+      let toastTimer = 0;
+      let seededOnce = false;
+
+      ctx.imageSmoothingEnabled = false;
+      miniCtx.imageSmoothingEnabled = false;
+
+      buildMaterialPanel();
+      bindControls();
+      resizeWorld();
+      requestAnimationFrame(loop);
+
+      const resizeObserver = new ResizeObserver(() => resizeWorld());
+      resizeObserver.observe(wrap);
+
+      function buildMaterialPanel() {
+        materialCountEl.textContent = String(paintableIds.length);
+        const fragment = document.createDocumentFragment();
+
+        for (const id of paintableIds) {
+          const material = materials[id];
+          const button = document.createElement("button");
+          button.className = "material";
+          button.type = "button";
+          button.setAttribute("aria-pressed", String(id === selected));
+          button.title = material.name;
+          button.dataset.id = String(id);
+
+          const swatch = document.createElement("span");
+          swatch.className = "swatch";
+          swatch.style.background = paletteBackground(material.palette);
+
+          const name = document.createElement("span");
+          name.className = "material-name";
+          name.textContent = material.name;
+
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = stateName[material.state] || "";
+
+          button.append(swatch, name, tag);
+          button.addEventListener("click", () => {
+            eraseMode = false;
+            selectMaterial(id);
+            updateControlState();
+          });
+
+          materialButtons.set(id, button);
+          fragment.append(button);
+        }
+
+        materialsEl.append(fragment);
+        updateChip();
+      }
+
+      function bindControls() {
+        brushRange.addEventListener("input", () => {
+          brushSize = Number(brushRange.value);
+          brushValue.textContent = String(brushSize);
+        });
+
+        speedRange.addEventListener("input", () => {
+          stepsPerFrame = Number(speedRange.value);
+          speedValue.textContent = String(stepsPerFrame);
+        });
+
+        pauseBtn.addEventListener("click", () => {
+          paused = !paused;
+          updateControlState();
+        });
+
+        stepBtn.addEventListener("click", () => {
+          simulateFrame(1);
+          renderWorld();
+          updateStats(true);
+        });
+
+        gravityBtn.addEventListener("click", () => {
+          invertedGravity = !invertedGravity;
+          updateControlState();
+          showToast(invertedGravity ? "重力已反转" : "重力已恢复");
+        });
+
+        eraseBtn.addEventListener("click", () => {
+          eraseMode = !eraseMode;
+          updateControlState();
+        });
+
+        clearBtn.addEventListener("click", () => {
+          clearWorld();
+          showToast("世界已清空");
+        });
+
+        seedBtn.addEventListener("click", () => {
+          seedWorld();
+          showToast("世界已重置");
+        });
+
+        rainBtn.addEventListener("click", () => {
+          addRainCloud();
+          showToast("雨幕已生成");
+        });
+
+        saveBtn.addEventListener("click", saveWorld);
+        loadBtn.addEventListener("click", loadWorld);
+        shotBtn.addEventListener("click", exportPng);
+        compactBtn.addEventListener("click", () => {
+          for (let i = 0; i < 90; i += 1) simulateFrame(1);
+          renderWorld();
+          updateStats(true);
+          showToast("沉降完成");
+        });
+
+        canvas.addEventListener("pointerdown", (event) => {
+          pointer.active = true;
+          pointer.erase = eraseMode || event.button === 2 || event.buttons === 2;
+          canvas.setPointerCapture(event.pointerId);
+          updatePointer(event);
+          paintPointer();
+        });
+
+        canvas.addEventListener("pointermove", (event) => {
+          updatePointer(event);
+          if (pointer.active) paintPointer();
+        });
+
+        canvas.addEventListener("pointerup", (event) => {
+          pointer.active = false;
+          updatePointer(event);
+        });
+
+        canvas.addEventListener("pointercancel", () => {
+          pointer.active = false;
+        });
+
+        canvas.addEventListener("pointerleave", () => {
+          if (!pointer.active) {
+            pointer.x = -1;
+            pointer.y = -1;
+          }
+        });
+
+        canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+
+        window.addEventListener("keydown", (event) => {
+          if (event.target instanceof HTMLInputElement) return;
+          if (event.key === " ") {
+            event.preventDefault();
+            paused = !paused;
+            updateControlState();
+          } else if (event.key === "e" || event.key === "E") {
+            eraseMode = !eraseMode;
+            updateControlState();
+          } else if (event.key === "[" || event.key === "-") {
+            brushRange.value = String(Math.max(1, brushSize - 1));
+            brushRange.dispatchEvent(new Event("input"));
+          } else if (event.key === "]" || event.key === "=") {
+            brushRange.value = String(Math.min(32, brushSize + 1));
+            brushRange.dispatchEvent(new Event("input"));
+          } else if (/^[1-9]$/.test(event.key)) {
+            const index = Number(event.key) - 1;
+            if (paintableIds[index] !== undefined) selectMaterial(paintableIds[index]);
+          } else if (event.key === "0" && paintableIds[9] !== undefined) {
+            selectMaterial(paintableIds[9]);
+          }
+        });
+
+        updateControlState();
+      }
+
+      function resizeWorld() {
+        const rect = wrap.getBoundingClientRect();
+        const nextWidth = Math.max(80, Math.floor(rect.width / CELL_SIZE));
+        const nextHeight = Math.max(64, Math.floor(rect.height / CELL_SIZE));
+        if (nextWidth === width && nextHeight === height) return;
+
+        const oldWidth = width;
+        const oldHeight = height;
+        const oldCells = cells;
+        const oldVariants = variants;
+        const oldLife = life;
+
+        width = nextWidth;
+        height = nextHeight;
+        cells = new Uint8Array(width * height);
+        variants = new Uint8Array(width * height);
+        life = new Uint16Array(width * height);
+        moved = new Uint32Array(width * height);
+        imageData = ctx.createImageData(width, height);
+        canvas.width = width;
+        canvas.height = height;
+        miniCanvas.width = Math.max(1, Math.floor(width / 2));
+        miniCanvas.height = Math.max(1, Math.floor(height / 2));
+
+        if (oldCells.length) {
+          for (let y = 0; y < height; y += 1) {
+            const sourceY = Math.min(oldHeight - 1, Math.floor((y / height) * oldHeight));
+            for (let x = 0; x < width; x += 1) {
+              const sourceX = Math.min(oldWidth - 1, Math.floor((x / width) * oldWidth));
+              const source = sourceY * oldWidth + sourceX;
+              const target = index(x, y);
+              cells[target] = oldCells[source];
+              variants[target] = oldVariants[source];
+              life[target] = oldLife[source];
+            }
+          }
+        } else if (!seededOnce) {
+          seedWorld();
+          seededOnce = true;
+        }
+
+        gridSizeEl.textContent = width + "×" + height;
+        renderWorld();
+        renderMini(true);
+      }
+
+      function loop(now) {
+        const delta = Math.max(1, now - lastFrame);
+        lastFrame = now;
+        fpsSmoothed = fpsSmoothed * 0.9 + (1000 / delta) * 0.1;
+
+        if (!paused) {
+          simulateFrame(stepsPerFrame);
+        }
+
+        renderWorld();
+        updateStats(false);
+        requestAnimationFrame(loop);
+      }
+
+      function simulateFrame(steps) {
+        for (let step = 0; step < steps; step += 1) {
+          tick = (tick + 1) >>> 0;
+          if (tick === 0) {
+            moved.fill(0);
+            tick = 1;
+          }
+
+          updateSolidsAndLiquids();
+          updateGasesAndFire();
+        }
+      }
+
+      function updateSolidsAndLiquids() {
+        const gravity = gravityDir();
+        const startY = gravity > 0 ? height - 1 : 0;
+        const endY = gravity > 0 ? -1 : height;
+        const yStep = gravity > 0 ? -1 : 1;
+        const reverseX = (tick & 1) === 0;
+
+        for (let y = startY; y !== endY; y += yStep) {
+          if (reverseX) {
+            for (let x = width - 1; x >= 0; x -= 1) updateCellIfNeeded(x, y, false);
+          } else {
+            for (let x = 0; x < width; x += 1) updateCellIfNeeded(x, y, false);
+          }
+        }
+      }
+
+      function updateGasesAndFire() {
+        const reverseX = (tick & 2) === 0;
+        const gravity = gravityDir();
+        const startY = gravity > 0 ? 0 : height - 1;
+        const endY = gravity > 0 ? height : -1;
+        const yStep = gravity > 0 ? 1 : -1;
+
+        for (let y = startY; y !== endY; y += yStep) {
+          if (reverseX) {
+            for (let x = width - 1; x >= 0; x -= 1) updateCellIfNeeded(x, y, true);
+          } else {
+            for (let x = 0; x < width; x += 1) updateCellIfNeeded(x, y, true);
+          }
+        }
+      }
+
+      function updateCellIfNeeded(x, y, gasPass) {
+        const i = index(x, y);
+        const id = cells[i];
+        if (id === EMPTY || moved[i] === tick) return;
+        const material = materials[id];
+        const isGasLike = material.state === "gas" || material.state === "energy";
+        if (gasPass !== isGasLike) return;
+        if (material.update) material.update(x, y);
+      }
+
+      function updateFixed() {
+        return false;
+      }
+
+      function updateSand(x, y) {
+        if (reactWithAdjacent(x, y, SAND)) return true;
+        if (maybeTurnToGlass(x, y)) return true;
+        return powderMotion(x, y, SAND);
+      }
+
+      function updateSalt(x, y) {
+        const dissolved = forEachNeighbor(x, y, (nx, ny, ni, id) => {
+          if (id === WATER && Math.random() < 0.35) {
+            setCell(x, y, EMPTY);
+            if (Math.random() < 0.26) setCell(nx, ny, SALT);
+            return true;
+          }
+          return false;
+        });
+        if (dissolved) return true;
+        return powderMotion(x, y, SALT);
+      }
+
+      function updateSeed(x, y) {
+        if (touchesMaterial(x, y, WATER) && hasSupport(x, y) && Math.random() < 0.16) {
+          setCell(x, y, PLANT);
+          const above = y - gravityDir();
+          if (isInBounds(x, above) && cells[index(x, above)] === EMPTY) setCell(x, above, PLANT);
+          consumeNeighbor(x, y, WATER, EMPTY, 0.45);
+          markMoved(x, y);
+          return true;
+        }
+        return powderMotion(x, y, SEED);
+      }
+
+      function updateWater(x, y) {
+        let changed = false;
+        forEachNeighbor(x, y, (nx, ny, ni, id) => {
+          if (id === FIRE) {
+            setCell(nx, ny, STEAM);
+            changed = true;
+          } else if (id === LAVA) {
+            setCell(nx, ny, STONE);
+            setCell(x, y, STEAM);
+            changed = true;
+            return true;
+          } else if (id === ACID && Math.random() < 0.08) {
+            setCell(nx, ny, WATER);
+          } else if (id === ICE && Math.random() < 0.015) {
+            setCell(x, y, ICE);
+            changed = true;
+            return true;
+          }
+          return false;
+        });
+        if (changed && cells[index(x, y)] !== WATER) return true;
+        return liquidMotion(x, y, WATER, 5);
+      }
+
+      function updateOil(x, y) {
+        if (touchesHot(x, y) && Math.random() < 0.34) {
+          setCell(x, y, FIRE);
+          return true;
+        }
+        if (Math.random() < 0.12) igniteFlammableNeighbors(x, y, 0.13);
+        return liquidMotion(x, y, OIL, 4);
+      }
+
+      function updateLava(x, y) {
+        let hardened = false;
+        forEachNeighbor(x, y, (nx, ny, ni, id) => {
+          if (id === WATER || id === ICE) {
+            setCell(nx, ny, STEAM);
+            setCell(x, y, Math.random() < 0.55 ? STONE : GLASS);
+            hardened = true;
+            return true;
+          }
+          if (id === SAND && Math.random() < 0.16) setCell(nx, ny, GLASS);
+          if (id === SALT && Math.random() < 0.08) setCell(nx, ny, EMPTY);
+          if (materials[id]?.flammable && Math.random() < 0.34) setCell(nx, ny, FIRE);
+          return false;
+        });
+        if (hardened) return true;
+
+        if (Math.random() < 0.08) {
+          const gy = y - gravityDir();
+          if (isInBounds(x, gy) && cells[index(x, gy)] === EMPTY) setCell(x, gy, FIRE);
+        }
+
+        if ((tick + x + y) % 3 !== 0) {
+          markMoved(x, y);
+          return false;
+        }
+        return liquidMotion(x, y, LAVA, 2);
+      }
+
+      function updateAcid(x, y) {
+        let ate = false;
+        forEachNeighbor(x, y, (nx, ny, ni, id) => {
+          if (id === WATER && Math.random() < 0.1) {
+            setCell(x, y, WATER);
+            ate = true;
+            return true;
+          }
+          if (id !== EMPTY && id !== ACID && id !== GLASS && id !== LAVA) {
+            const resistance = Math.max(1, 100 - (materials[id].corrodible || 0));
+            if (Math.random() < 1 / resistance) {
+              setCell(nx, ny, Math.random() < 0.2 ? SMOKE : EMPTY);
+              if (Math.random() < 0.18) setCell(x, y, EMPTY);
+              ate = true;
+              return Math.random() < 0.35;
+            }
+          }
+          return false;
+        });
+        if (ate && cells[index(x, y)] !== ACID) return true;
+        return liquidMotion(x, y, ACID, 4);
+      }
+
+      function updateWood(x, y) {
+        if (touchesHot(x, y) && Math.random() < 0.035) {
+          setCell(x, y, FIRE);
+          return true;
+        }
+        markMoved(x, y);
+        return false;
+      }
+
+      function updatePlant(x, y) {
+        if (touchesHot(x, y) && Math.random() < 0.12) {
+          setCell(x, y, FIRE);
+          return true;
+        }
+        if (touchesMaterial(x, y, WATER) && Math.random() < 0.035) {
+          const dirs = shuffledDirs([
+            [0, -gravityDir()],
+            [randomDir(), 0],
+            [-randomDir(), -gravityDir()]
+          ]);
+          for (const [dx, dy] of dirs) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (isInBounds(nx, ny) && cells[index(nx, ny)] === EMPTY) {
+              setCell(nx, ny, PLANT);
+              consumeNeighbor(x, y, WATER, EMPTY, 0.18);
+              break;
+            }
+          }
+        }
+        markMoved(x, y);
+        return false;
+      }
+
+      function updateIce(x, y) {
+        if (touchesHot(x, y) && Math.random() < 0.22) {
+          setCell(x, y, WATER);
+          return true;
+        }
+        markMoved(x, y);
+        return false;
+      }
+
+      function updateMetal(x, y) {
+        if (touchesMaterial(x, y, LAVA) && Math.random() < 0.01) {
+          setCell(x, y, LAVA);
+          return true;
+        }
+        markMoved(x, y);
+        return false;
+      }
+
+      function updateFire(x, y) {
+        const i = index(x, y);
+        if (touchesMaterial(x, y, WATER) || touchesMaterial(x, y, ICE)) {
+          setCell(x, y, Math.random() < 0.5 ? STEAM : SMOKE);
+          return true;
+        }
+
+        igniteFlammableNeighbors(x, y, 0.32);
+        if (life[i] > 0) life[i] -= 1;
+        if (life[i] === 0 || Math.random() < 0.035) {
+          setCell(x, y, Math.random() < 0.55 ? SMOKE : EMPTY);
+          return true;
+        }
+
+        const rise = -gravityDir();
+        const dirs = shuffledDirs([[0, rise], [randomDir(), rise], [-randomDir(), rise], [randomDir(), 0]]);
+        for (const [dx, dy] of dirs) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (!isInBounds(nx, ny)) continue;
+          const target = cells[index(nx, ny)];
+          if (target === EMPTY || target === SMOKE || target === STEAM) {
+            if (Math.random() < 0.52) return moveCell(x, y, nx, ny);
+          }
+        }
+        markMoved(x, y);
+        return false;
+      }
+
+      function updateSmoke(x, y) {
+        return gasMotion(x, y, SMOKE, false);
+      }
+
+      function updateSteam(x, y) {
+        return gasMotion(x, y, STEAM, true);
+      }
+
+      function powderMotion(x, y, id) {
+        const g = gravityDir();
+        const dirs = shuffledDirs([[0, g], [randomDir(), g], [-randomDir(), g]]);
+        for (const [dx, dy] of dirs) {
+          if (tryMove(x, y, x + dx, y + dy)) return true;
+        }
+
+        if (Math.random() < 0.18) {
+          const dx = randomDir();
+          if (tryMove(x, y, x + dx, y)) return true;
+        }
+
+        markMoved(x, y);
+        return false;
+      }
+
+      function liquidMotion(x, y, id, spread) {
+        const g = gravityDir();
+        const diagonal = shuffledDirs([[randomDir(), g], [-randomDir(), g]]);
+        if (tryMove(x, y, x, y + g)) return true;
+        for (const [dx, dy] of diagonal) {
+          if (tryMove(x, y, x + dx, y + dy)) return true;
+        }
+
+        const side = randomDir();
+        if (flowSideways(x, y, side, spread)) return true;
+        if (flowSideways(x, y, -side, spread)) return true;
+
+        markMoved(x, y);
+        return false;
+      }
+
+      function gasMotion(x, y, id, condenses) {
+        const i = index(x, y);
+        if (life[i] > 0) life[i] -= 1;
+        if (life[i] === 0 || Math.random() < (id === SMOKE ? 0.006 : 0.002)) {
+          setCell(x, y, condenses && Math.random() < 0.72 ? WATER : EMPTY);
+          return true;
+        }
+
+        const rise = -gravityDir();
+        const dirs = shuffledDirs([[0, rise], [randomDir(), rise], [-randomDir(), rise], [randomDir(), 0], [-randomDir(), 0]]);
+        for (const [dx, dy] of dirs) {
+          if (tryMove(x, y, x + dx, y + dy)) return true;
+        }
+
+        markMoved(x, y);
+        return false;
+      }
+
+      function flowSideways(x, y, dir, spread) {
+        let bestX = x;
+        for (let distance = 1; distance <= spread; distance += 1) {
+          const nx = x + dir * distance;
+          if (!isInBounds(nx, y)) break;
+          const target = cells[index(nx, y)];
+          if (target !== EMPTY && !canDisplace(cells[index(x, y)], target)) break;
+          bestX = nx;
+          if (Math.random() < 0.4) break;
+        }
+        if (bestX !== x) return tryMove(x, y, bestX, y);
+        return false;
+      }
+
+      function tryMove(x, y, nx, ny) {
+        if (!isInBounds(nx, ny)) return false;
+        const from = index(x, y);
+        const to = index(nx, ny);
+        if (moved[to] === tick) return false;
+        const id = cells[from];
+        const target = cells[to];
+        if (target === EMPTY || canDisplace(id, target)) return moveCell(x, y, nx, ny);
+        return false;
+      }
+
+      function canDisplace(id, target) {
+        if (target === EMPTY) return true;
+        const current = materials[id];
+        const other = materials[target];
+        if (!current || !other) return false;
+        if (other.state === "solid" && target !== ICE) return false;
+        if (other.state === "energy" && id !== WATER && id !== ACID) return false;
+        return current.density > other.density + 2;
+      }
+
+      function moveCell(x, y, nx, ny) {
+        const from = index(x, y);
+        const to = index(nx, ny);
+        const id = cells[from];
+        const target = cells[to];
+        const targetVariant = variants[to];
+        const targetLife = life[to];
+        cells[to] = id;
+        variants[to] = variants[from];
+        life[to] = life[from];
+        cells[from] = target;
+        variants[from] = target === EMPTY ? 0 : targetVariant;
+        life[from] = target === EMPTY ? 0 : targetLife;
+        moved[to] = tick;
+        moved[from] = tick;
+        return true;
+      }
+
+      function setCell(x, y, id) {
+        if (!isInBounds(x, y)) return;
+        const i = index(x, y);
+        cells[i] = id;
+        const palette = rgbPalettes[id];
+        variants[i] = palette ? Math.floor(Math.random() * palette.length) : 0;
+        life[i] = createLife(id);
+        moved[i] = tick;
+      }
+
+      function clearCell(i) {
+        cells[i] = EMPTY;
+        variants[i] = 0;
+        life[i] = 0;
+        moved[i] = tick;
+      }
+
+      function markMoved(x, y) {
+        moved[index(x, y)] = tick;
+      }
+
+      function createLife(id) {
+        const range = materials[id]?.life;
+        if (!range) return 0;
+        return range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
+      }
+
+      function reactWithAdjacent(x, y, id) {
+        if (id === SAND && touchesMaterial(x, y, ACID) && Math.random() < 0.01) {
+          setCell(x, y, EMPTY);
+          return true;
+        }
+        return false;
+      }
+
+      function maybeTurnToGlass(x, y) {
+        if (touchesMaterial(x, y, LAVA) && Math.random() < 0.045) {
+          setCell(x, y, GLASS);
+          return true;
+        }
+        return false;
+      }
+
+      function igniteFlammableNeighbors(x, y, chance) {
+        forEachNeighbor(x, y, (nx, ny, ni, id) => {
+          if (materials[id]?.flammable && Math.random() < chance * (materials[id].flammable / 100)) {
+            setCell(niToX(ni), niToY(ni), FIRE);
+          }
+          return false;
+        });
+      }
+
+      function consumeNeighbor(x, y, id, replacement, chance) {
+        forEachNeighbor(x, y, (nx, ny, ni, found) => {
+          if (found === id && Math.random() < chance) {
+            setCell(nx, ny, replacement);
+            return true;
+          }
+          return false;
+        });
+      }
+
+      function touchesHot(x, y) {
+        return touchesMaterial(x, y, FIRE) || touchesMaterial(x, y, LAVA);
+      }
+
+      function touchesMaterial(x, y, id) {
+        let found = false;
+        forEachNeighbor(x, y, (nx, ny, ni, target) => {
+          if (target === id) {
+            found = true;
+            return true;
+          }
+          return false;
+        });
+        return found;
+      }
+
+      function hasSupport(x, y) {
+        const g = gravityDir();
+        const ny = y + g;
+        if (!isInBounds(x, ny)) return true;
+        const id = cells[index(x, ny)];
+        return id !== EMPTY && materials[id].state !== "gas" && materials[id].state !== "liquid";
+      }
+
+      function forEachNeighbor(x, y, visitor) {
+        const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+        for (const [dx, dy] of dirs) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (!isInBounds(nx, ny)) continue;
+          const ni = index(nx, ny);
+          if (visitor(nx, ny, ni, cells[ni])) return true;
+        }
+        return false;
+      }
+
+      function paintPointer() {
+        if (pointer.x < 0 || pointer.y < 0) return;
+        paintCircle(pointer.x, pointer.y, pointer.erase ? EMPTY : selected, brushSize, pointer.erase);
+      }
+
+      function paintCircle(cx, cy, id, radius, erase) {
+        const radiusSquared = radius * radius;
+        const scatter = materials[id]?.state === "powder" || materials[id]?.state === "liquid" || id === FIRE || id === SMOKE || id === STEAM;
+        for (let dy = -radius; dy <= radius; dy += 1) {
+          const y = cy + dy;
+          if (y < 0 || y >= height) continue;
+          for (let dx = -radius; dx <= radius; dx += 1) {
+            const x = cx + dx;
+            if (x < 0 || x >= width) continue;
+            const distance = dx * dx + dy * dy;
+            if (distance > radiusSquared) continue;
+            if (scatter && !erase && Math.random() < distance / radiusSquared * 0.36) continue;
+            if (!erase && id !== EMPTY && cells[index(x, y)] !== EMPTY && brushSize < 5 && Math.random() < 0.5) continue;
+            setCell(x, y, id);
+          }
+        }
+      }
+
+      function updatePointer(event) {
+        const rect = canvas.getBoundingClientRect();
+        pointer.x = Math.floor(((event.clientX - rect.left) / rect.width) * width);
+        pointer.y = Math.floor(((event.clientY - rect.top) / rect.height) * height);
+      }
+
+      function renderWorld() {
+        if (!imageData) return;
+        const data = imageData.data;
+        let p = 0;
+        for (let y = 0; y < height; y += 1) {
+          const shade = Math.floor((y / Math.max(1, height)) * 10);
+          for (let x = 0; x < width; x += 1) {
+            const i = index(x, y);
+            const id = cells[i];
+            let r;
+            let g;
+            let b;
+
+            if (id === EMPTY) {
+              const grain = ((x * 17 + y * 29 + tick) % 9);
+              r = 5 + shade + grain;
+              g = 8 + shade + grain;
+              b = 10 + shade + grain;
+            } else {
+              const palette = rgbPalettes[id];
+              const color = palette[variants[i] % palette.length];
+              r = color[0];
+              g = color[1];
+              b = color[2];
+
+              if (id === FIRE || id === LAVA) {
+                const flicker = Math.floor(Math.random() * 34);
+                r = Math.min(255, r + flicker);
+                g = Math.min(238, g + Math.floor(flicker * 0.45));
+              } else if (id === WATER || id === ACID || id === OIL) {
+                const wave = ((x + tick + y * 3) % 8) - 3;
+                r = clampColor(r + wave);
+                g = clampColor(g + wave);
+                b = clampColor(b + wave * 2);
+              } else if (id === STEAM || id === SMOKE) {
+                const fade = Math.min(40, Math.floor((life[i] || 0) / 3));
+                r = clampColor(r - 26 + fade);
+                g = clampColor(g - 26 + fade);
+                b = clampColor(b - 26 + fade);
+              }
+            }
+
+            data[p] = r;
+            data[p + 1] = g;
+            data[p + 2] = b;
+            data[p + 3] = 255;
+            p += 4;
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        drawBrushRing();
+        renderMini(false);
+      }
+
+      function drawBrushRing() {
+        if (pointer.x < 0 || pointer.y < 0) return;
+        ctx.save();
+        ctx.strokeStyle = pointer.erase || eraseMode ? "rgba(255, 112, 67, 0.92)" : "rgba(237, 244, 241, 0.78)";
+        ctx.lineWidth = Math.max(1, Math.ceil(width / 300));
+        ctx.beginPath();
+        ctx.arc(pointer.x + 0.5, pointer.y + 0.5, brushSize, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function renderMini(force) {
+        const now = performance.now();
+        if (!force && now - lastMiniRender < 160) return;
+        lastMiniRender = now;
+        miniCtx.imageSmoothingEnabled = false;
+        miniCtx.drawImage(canvas, 0, 0, miniCanvas.width, miniCanvas.height);
+      }
+
+      function updateStats(force) {
+        statCountdown -= 1;
+        if (!force && statCountdown > 0) return;
+        statCountdown = 12;
+        let count = 0;
+        for (let i = 0; i < cells.length; i += 1) {
+          if (cells[i] !== EMPTY) count += 1;
+        }
+        fpsEl.textContent = String(Math.round(fpsSmoothed));
+        particlesEl.textContent = formatNumber(count);
+        engineStateEl.textContent = paused ? "暂停" : invertedGravity ? "反重力" : "运行";
+      }
+
+      function selectMaterial(id) {
+        selected = id;
+        for (const [materialId, button] of materialButtons) {
+          button.setAttribute("aria-pressed", String(materialId === id));
+        }
+        updateChip();
+      }
+
+      function updateChip() {
+        const material = materials[selected];
+        chipText.textContent = eraseMode ? "擦除" : material.name;
+        chipSwatch.style.background = eraseMode ? "linear-gradient(135deg, #ff7043, #11161a)" : paletteBackground(material.palette);
+      }
+
+      function updateControlState() {
+        pauseBtn.setAttribute("aria-pressed", String(paused));
+        gravityBtn.setAttribute("aria-pressed", String(invertedGravity));
+        eraseBtn.setAttribute("aria-pressed", String(eraseMode));
+        engineStateEl.textContent = paused ? "暂停" : invertedGravity ? "反重力" : "运行";
+
+        if (paused) {
+          pauseIconA.setAttribute("d", "m8 5 10 7-10 7z");
+          pauseIconB.setAttribute("d", "M0 0");
+        } else {
+          pauseIconA.setAttribute("d", "M8 5v14");
+          pauseIconB.setAttribute("d", "M16 5v14");
+        }
+        updateChip();
+      }
+
+      function clearWorld() {
+        cells.fill(EMPTY);
+        variants.fill(0);
+        life.fill(0);
+        moved.fill(0);
+        renderWorld();
+        updateStats(true);
+      }
+
+      function seedWorld() {
+        clearWorld();
+        if (!width || !height) return;
+
+        const floor = Math.max(5, Math.floor(height * 0.055));
+        for (let y = height - floor; y < height; y += 1) {
+          for (let x = 0; x < width; x += 1) {
+            if (Math.random() < 0.92) setCell(x, y, STONE);
+          }
+        }
+
+        for (let x = 0; x < width; x += 1) {
+          const duneHeight = Math.floor(height * 0.18 + Math.sin(x * 0.08) * 7 + Math.random() * 5);
+          const startY = height - floor - duneHeight + Math.floor(Math.abs(x - width * 0.25) * 0.18);
+          if (x < width * 0.52) {
+            for (let y = Math.max(0, startY); y < height - floor; y += 1) {
+              if (Math.random() < 0.82) setCell(x, y, SAND);
+            }
+          }
+        }
+
+        const poolLeft = Math.floor(width * 0.58);
+        const poolRight = Math.floor(width * 0.9);
+        const poolTop = Math.floor(height * 0.66);
+        for (let y = poolTop; y < height - floor - 1; y += 1) {
+          for (let x = poolLeft; x < poolRight; x += 1) {
+            if (Math.random() < 0.88) setCell(x, y, WATER);
+          }
+        }
+
+        for (let y = Math.floor(height * 0.38); y < height - floor; y += 1) {
+          const wallX = Math.floor(width * 0.55 + Math.sin(y * 0.14) * 2);
+          setCell(wallX, y, STONE);
+          if (Math.random() < 0.64) setCell(wallX + 1, y, STONE);
+        }
+
+        for (let x = Math.floor(width * 0.11); x < Math.floor(width * 0.2); x += 1) {
+          for (let y = Math.floor(height * 0.53); y < Math.floor(height * 0.71); y += 1) {
+            if (Math.random() < 0.7) setCell(x, y, WOOD);
+          }
+        }
+
+        for (let x = Math.floor(width * 0.7); x < Math.floor(width * 0.77); x += 1) {
+          for (let y = Math.floor(height * 0.72); y < Math.floor(height * 0.82); y += 1) {
+            if (Math.random() < 0.65) setCell(x, y, OIL);
+          }
+        }
+
+        for (let x = Math.floor(width * 0.82); x < Math.floor(width * 0.89); x += 1) {
+          for (let y = Math.floor(height * 0.49); y < Math.floor(height * 0.58); y += 1) {
+            if (Math.random() < 0.55) setCell(x, y, LAVA);
+          }
+        }
+
+        for (let n = 0; n < Math.max(10, width / 9); n += 1) {
+          setCell(randInt(width * 0.58, width * 0.88), randInt(height * 0.57, height * 0.64), SEED);
+        }
+
+        for (let n = 0; n < Math.max(8, width / 12); n += 1) {
+          setCell(randInt(width * 0.04, width * 0.28), randInt(height * 0.1, height * 0.18), SALT);
+        }
+
+        renderWorld();
+        updateStats(true);
+      }
+
+      function addRainCloud() {
+        const cloudTop = Math.max(2, Math.floor(height * 0.04));
+        const cloudHeight = Math.max(6, Math.floor(height * 0.08));
+        const left = Math.floor(width * 0.12);
+        const right = Math.floor(width * 0.88);
+        for (let y = cloudTop; y < cloudTop + cloudHeight; y += 1) {
+          for (let x = left; x < right; x += 1) {
+            if (Math.random() < 0.12) setCell(x, y, STEAM);
+            if (Math.random() < 0.04) setCell(x, y + cloudHeight, WATER);
+          }
+        }
+      }
+
+      function saveWorld() {
+        try {
+          const payload = {
+            width,
+            height,
+            cells: Array.from(cells),
+            variants: Array.from(variants),
+            life: Array.from(life)
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+          showToast("世界已保存");
+        } catch (error) {
+          showToast("保存失败");
+          console.error(error);
+        }
+      }
+
+      function loadWorld() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) {
+            showToast("没有存档");
+            return;
+          }
+          const payload = JSON.parse(raw);
+          if (!payload || !payload.width || !payload.height || !payload.cells) throw new Error("Invalid save");
+          clearWorld();
+          for (let y = 0; y < height; y += 1) {
+            const sourceY = Math.min(payload.height - 1, Math.floor((y / height) * payload.height));
+            for (let x = 0; x < width; x += 1) {
+              const sourceX = Math.min(payload.width - 1, Math.floor((x / width) * payload.width));
+              const source = sourceY * payload.width + sourceX;
+              const target = index(x, y);
+              cells[target] = payload.cells[source] || EMPTY;
+              variants[target] = payload.variants?.[source] || 0;
+              life[target] = payload.life?.[source] || 0;
+            }
+          }
+          renderWorld();
+          updateStats(true);
+          showToast("世界已读取");
+        } catch (error) {
+          showToast("读取失败");
+          console.error(error);
+        }
+      }
+
+      function exportPng() {
+        const exportCanvas = document.createElement("canvas");
+        const scale = 4;
+        exportCanvas.width = width * scale;
+        exportCanvas.height = height * scale;
+        const exportCtx = exportCanvas.getContext("2d");
+        exportCtx.imageSmoothingEnabled = false;
+        exportCtx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
+        const link = document.createElement("a");
+        link.download = "falling-sand-world.png";
+        link.href = exportCanvas.toDataURL("image/png");
+        link.click();
+        showToast("PNG 已导出");
+      }
+
+      function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1300);
+      }
+
+      function isInBounds(x, y) {
+        return x >= 0 && x < width && y >= 0 && y < height;
+      }
+
+      function index(x, y) {
+        return y * width + x;
+      }
+
+      function niToX(i) {
+        return i % width;
+      }
+
+      function niToY(i) {
+        return Math.floor(i / width);
+      }
+
+      function gravityDir() {
+        return invertedGravity ? -1 : 1;
+      }
+
+      function randomDir() {
+        return Math.random() < 0.5 ? -1 : 1;
+      }
+
+      function shuffledDirs(dirs) {
+        if (Math.random() < 0.5) {
+          const copy = dirs.slice();
+          copy.reverse();
+          return copy;
+        }
+        return dirs;
+      }
+
+      function randInt(min, max) {
+        const low = Math.floor(Math.max(0, min));
+        const high = Math.floor(Math.max(low + 1, max));
+        return low + Math.floor(Math.random() * (high - low));
+      }
+
+      function clampColor(value) {
+        return Math.max(0, Math.min(255, value));
+      }
+
+      function hexToRgb(hex) {
+        const clean = hex.replace("#", "");
+        const value = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
+        return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+      }
+
+      function paletteBackground(palette) {
+        if (!palette || palette.length === 0) return "#000";
+        if (palette.length === 1) return palette[0];
+        return "linear-gradient(135deg, " + palette.map((color, i) => {
+          const point = Math.round((i / (palette.length - 1)) * 100);
+          return color + " " + point + "%";
+        }).join(", ") + ")";
+      }
+
+      function formatNumber(value) {
+        if (value >= 1000000) return (value / 1000000).toFixed(1) + "M";
+        if (value >= 1000) return (value / 1000).toFixed(1) + "K";
+        return String(value);
+      }
+    })();
+  </script>
+</body>
+</html>

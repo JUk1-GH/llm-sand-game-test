@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>落沙模拟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            margin: 12px 0 8px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        #canvas {
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: crosshair;
+            max-width: 95vw;
+            max-height: 70vh;
+            image-rendering: pixelated;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px;
+            max-width: 960px;
+            justify-content: center;
+        }
+
+        #material-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            max-width: 960px;
+            padding: 4px 8px;
+        }
+
+        .material-btn {
+            position: relative;
+            width: 58px;
+            height: 42px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, border-color 0.15s;
+        }
+
+        .material-btn:hover {
+            transform: scale(1.08);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .material-btn.selected {
+            border-color: #fff;
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
+            transform: scale(1.1);
+        }
+
+        .btn-label {
+            font-size: 11px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            font-weight: 600;
+        }
+
+        .btn-key {
+            font-size: 9px;
+            color: rgba(255,255,255,0.6);
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .controls button {
+            padding: 6px 14px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #2a2a3e;
+            color: #ddd;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+
+        .controls button:hover {
+            background: #3a3a5e;
+        }
+
+        .controls button.selected {
+            background: #4a4a7e;
+            border-color: #888;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .slider-group input[type="range"] {
+            width: 80px;
+            accent-color: #6688cc;
+        }
+
+        #fps {
+            font-size: 13px;
+            color: #888;
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body>
+    <h1>落沙模拟</h1>
+    <canvas id="canvas"></canvas>
+
+    <div class="toolbar">
+        <div id="material-panel"></div>
+    </div>
+
+    <div class="controls">
+        <button id="eraser-btn">🧹 橡皮擦</button>
+        <div class="slider-group">
+            <span>笔刷:</span>
+            <input type="range" id="brush-size" min="1" max="15" value="3">
+            <span id="brush-label">3</span>
+        </div>
+        <button id="pause-btn">⏸ 暂停</button>
+        <button id="clear-btn">🗑 清除</button>
+        <span id="fps">FPS: 60</span>
+    </div>
+
+    <script src="js/materials.js"></script>
+    <script src="js/simulation.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Falling Sand Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0f0f13;
+        }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #fff;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            image-rendering: pixelated; /* Keeps the retro crisp look */
+            touch-action: none;
+        }
+        .toolbar {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 26, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 20px 28px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+        .materials {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .mat-btn {
+            background: transparent;
+            color: #ccc;
+            border: 2px solid transparent;
+            padding: 10px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            outline: none;
+        }
+        .mat-btn::before {
+            content: '';
+            display: block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--c);
+            box-shadow: 0 0 10px var(--c);
+            transition: transform 0.2s;
+        }
+        .mat-btn:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+        }
+        .mat-btn:hover::before {
+            transform: scale(1.2);
+        }
+        .mat-btn.active {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-color: rgba(255,255,255,0.2);
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #aaa;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 120px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        #clear-btn {
+            background: rgba(231, 76, 60, 0.15);
+            color: #ff6b6b;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            outline: none;
+        }
+        #clear-btn:hover {
+            background: rgba(231, 76, 60, 0.3);
+            border-color: rgba(231, 76, 60, 0.6);
+        }
+        .fps {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            font-family: monospace;
+            color: #6c7a89;
+            font-size: 13px;
+            pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="sim"></canvas>
+    <div class="fps" id="fps">FPS: 0</div>
+    
+    <div class="toolbar">
+        <div class="materials">
+            <button class="mat-btn active" data-mat="1" style="--c: rgb(234, 196, 126)">Sand</button>
+            <button class="mat-btn" data-mat="2" style="--c: rgb(52, 152, 219)">Water</button>
+            <button class="mat-btn" data-mat="3" style="--c: rgb(149, 165, 166)">Stone</button>
+            <button class="mat-btn" data-mat="4" style="--c: rgb(139, 90, 43)">Wood</button>
+            <button class="mat-btn" data-mat="5" style="--c: rgb(231, 76, 60)">Fire</button>
+            <button class="mat-btn" data-mat="6" style="--c: rgb(170, 175, 180)">Smoke</button>
+            <button class="mat-btn" data-mat="7" style="--c: rgb(46, 204, 113)">Plant</button>
+            <button class="mat-btn" data-mat="0" style="--c: rgba(255,255,255,0.1)">Eraser</button>
+        </div>
+        <div class="controls">
+            <div class="slider-container">
+                <label for="brush-size">Brush</label>
+                <input type="range" id="brush-size" min="1" max="40" value="8">
+                <span id="brush-val" style="min-width: 2ch;">8</span>
+            </div>
+            <button id="clear-btn">Clear Canvas</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sim');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: false });
+        
+        // Dynamic scale vs resolution chunkiness
+        const DOWNSCALE = window.innerWidth < 768 ? 3 : 4; 
+        
+        let simW, simH;
+        let grid, states, updated;
+        let imageData, dataBuffer;
+
+        const MATS = {
+            EMPTY: 0,
+            SAND: 1,
+            WATER: 2,
+            STONE: 3,
+            WOOD: 4,
+            FIRE: 5,
+            SMOKE: 6,
+            PLANT: 7
+        };
+
+        const colorsMap = [
+            [15, 15, 19, 255],     // 0: EMPTY (Matches bg slightly)
+            [234, 196, 126, 255],  // 1: SAND
+            [52, 152, 219, 255],   // 2: WATER
+            [149, 165, 166, 255],  // 3: STONE
+            [139, 90, 43, 255],    // 4: WOOD
+            [231, 76, 60, 255],    // 5: FIRE (Red)
+            [170, 175, 180, 255],  // 6: SMOKE
+            [46, 204, 113, 255],   // 7: PLANT
+            [255, 165, 0, 255]     // 8: FIRE_ORANGE (Used for flicker render)
+        ];
+
+        const isLittleEndian = new Uint8Array(new Uint32Array([0x11223344]).buffer)[0] === 0x44;
+        const colorPalette32 = new Uint32Array(colorsMap.length);
+        
+        for (let i = 0; i < colorsMap.length; i++) {
+            let [r, g, b, a] = colorsMap[i];
+            if (isLittleEndian) {
+                colorPalette32[i] = (a << 24) | (b << 16) | (g << 8) | r;
+            } else {
+                colorPalette32[i] = (r << 24) | (g << 16) | (b << 8) | a;
+            }
+        }
+
+        function initGrid() {
+            canvas.width = Math.floor(window.innerWidth / DOWNSCALE);
+            canvas.height = Math.floor(window.innerHeight / DOWNSCALE);
+            simW = canvas.width;
+            simH = canvas.height;
+            
+            let len = simW * simH;
+            grid = new Uint8Array(len);
+            states = new Uint8Array(len);
+            updated = new Uint8Array(len);
+            
+            imageData = ctx.createImageData(simW, simH);
+            dataBuffer = new Uint32Array(imageData.data.buffer);
+            dataBuffer.fill(colorPalette32[0]);
+        }
+
+        window.addEventListener('resize', initGrid);
+        initGrid();
+
+        let isDrawing = false;
+        let currentMat = MATS.SAND;
+        let brushSize = 8;
+        let lastX = -1, lastY = -1;
+
+        document.querySelectorAll('.mat-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelector('.mat-btn.active').classList.remove('active');
+                e.currentTarget.classList.add('active');
+                currentMat = parseInt(e.currentTarget.dataset.mat);
+            });
+        });
+
+        document.getElementById('brush-size').addEventListener('input', (e) => {
+            brushSize = parseInt(e.target.value);
+            document.getElementById('brush-val').textContent = brushSize;
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            grid.fill(0);
+            states.fill(0);
+        });
+
+        function handlePointerDown(e) { isDrawing = true; paintEvent(e); }
+        function handlePointerUp() { isDrawing = false; lastX = -1; lastY = -1; }
+        function handlePointerMove(e) { if (isDrawing) paintEvent(e); }
+
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+
+        function paintEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            // Map screen coords to sim coords based on actual touch points
+            let clientX = e.clientX || e.touches[0].clientX;
+            let clientY = e.clientY || e.touches[0].clientY;
+            
+            let scaleX = simW / rect.width;
+            let scaleY = simH / rect.height;
+            
+            let mx = Math.floor((clientX - rect.left) * scaleX);
+            let my = Math.floor((clientY - rect.top) * scaleY);
+
+            if (lastX !== -1 && lastY !== -1) {
+                let dx = mx - lastX;
+                let dy = my - lastY;
+                let dist = Math.max(Math.abs(dx), Math.abs(dy));
+                for(let step=0; step<=dist; step++) {
+                    let t = dist === 0 ? 0 : step / dist;
+                    paintCircle(Math.round(lastX + dx*t), Math.round(lastY + dy*t));
+                }
+            } else {
+                paintCircle(mx, my);
+            }
+            lastX = mx;
+            lastY = my;
+        }
+
+        function paintCircle(cx, cy) {
+            let radiusSq = brushSize * brushSize;
+            for (let y = -brushSize; y <= brushSize; y++) {
+                for (let x = -brushSize; x <= brushSize; x++) {
+                    if (x*x + y*y <= radiusSq) {
+                        let px = cx + x;
+                        let py = cy + y;
+                        if (px >= 0 && px < simW && py >= 0 && py < simH) {
+                            let i = py * simW + px;
+                            // Solid brush overwrites liquid/gas/empty
+                            let currentInGrid = grid[i];
+                            if (currentMat === MATS.EMPTY || 
+                                currentInGrid === MATS.EMPTY || 
+                                currentInGrid === MATS.SMOKE || 
+                                currentInGrid === MATS.FIRE || 
+                                currentInGrid === MATS.WATER) {
+                                
+                                grid[i] = currentMat;
+                                if (currentMat === MATS.FIRE) states[i] = Math.floor(Math.random()*60)+30;
+                                if (currentMat === MATS.SMOKE) states[i] = Math.floor(Math.random()*50)+50;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function step() {
+            updated.fill(0);
+            let dir = Math.random() < 0.5 ? 1 : -1;
+            let xs = dir === 1 ? 0 : simW - 1;
+            let xe = dir === 1 ? simW : -1;
+
+            for (let y = simH - 1; y >= 0; y--) {
+                for (let x = xs; x !== xe; x += dir) {
+                    let i = y * simW + x;
+                    let mat = grid[i];
+                    
+                    if (mat === MATS.EMPTY || updated[i]) continue;
+                    
+                    const canMoveTo = (tx, ty, matType) => {
+                        if (tx < 0 || tx >= simW || ty < 0 || ty >= simH) return false;
+                        let targetMat = grid[ty * simW + tx];
+                        if (targetMat === MATS.EMPTY) return true;
+                        
+                        if (matType === MATS.SAND && (targetMat === MATS.WATER || targetMat === MATS.SMOKE || targetMat === MATS.FIRE)) return true;
+                        if (matType === MATS.WATER && (targetMat === MATS.SMOKE || targetMat === MATS.FIRE)) return true;
+                        if (matType === MATS.SMOKE && targetMat === MATS.WATER) return true; // Smoke bubbles up through water
+                        
+                        return false;
+                    };
+
+                    const swap = (tx, ty) => {
+                        let ti = ty * simW + tx;
+                        let tempMat = grid[ti], tempState = states[ti];
+                        grid[ti] = grid[i]; states[ti] = states[i];
+                        grid[i] = tempMat; states[i] = tempState;
+                        updated[ti] = 1;
+                    };
+
+                    if (mat === MATS.SAND) {
+                        if (canMoveTo(x, y + 1, mat)) swap(x, y + 1);
+                        else {
+                            let leftFirst = Math.random() < 0.5;
+                            if (leftFirst) {
+                                if (canMoveTo(x - 1, y + 1, mat)) swap(x - 1, y + 1);
+                                else if (canMoveTo(x + 1, y + 1, mat)) swap(x + 1, y + 1);
+                            } else {
+                                if (canMoveTo(x + 1, y + 1, mat)) swap(x + 1, y + 1);
+                                else if (canMoveTo(x - 1, y + 1, mat)) swap(x - 1, y + 1);
+                            }
+                        }
+                    } 
+                    else if (mat === MATS.WATER) {
+                        if (canMoveTo(x, y + 1, mat)) swap(x, y + 1);
+                        else {
+                            let leftFirst = Math.random() < 0.5;
+                            let moved = false;
+                            if (leftFirst) {
+                                if (canMoveTo(x - 1, y + 1, mat)) { swap(x - 1, y + 1); moved = true; }
+                                else if (canMoveTo(x + 1, y + 1, mat)) { swap(x + 1, y + 1); moved = true; }
+                            } else {
+                                if (canMoveTo(x + 1, y + 1, mat)) { swap(x + 1, y + 1); moved = true; }
+                                else if (canMoveTo(x - 1, y + 1, mat)) { swap(x - 1, y + 1); moved = true; }
+                            }
+                            
+                            if (!moved) {
+                                let slipLeft = canMoveTo(x - 1, y, mat);
+                                let slipRight = canMoveTo(x + 1, y, mat);
+                                if (slipLeft && slipRight) {
+                                    if (leftFirst) swap(x - 1, y); else swap(x + 1, y);
+                                } else if (slipLeft) swap(x - 1, y);
+                                else if (slipRight) swap(x + 1, y);
+                            }
+                        }
+                    }
+                    else if (mat === MATS.FIRE) {
+                        states[i]--;
+                        if (states[i] <= 0) {
+                            if (Math.random() < 0.2) {
+                                grid[i] = MATS.SMOKE;
+                                states[i] = Math.floor(Math.random() * 50) + 50;
+                            } else { grid[i] = MATS.EMPTY; }
+                            updated[i] = 1;
+                            continue;
+                        }
+
+                        let nx = x + Math.floor(Math.random() * 3) - 1; 
+                        let ny = y - 1;
+                        if (canMoveTo(nx, ny, mat)) {
+                            swap(nx, ny);
+                            x = nx; y = ny; i = y * simW + x; // Update pos for burn check
+                        } else if (Math.random() < 0.3 && canMoveTo(x + (Math.random()<0.5?-1:1), y, mat)) {
+                            swap(x + (Math.random()<0.5?-1:1), y);
+                        }
+
+                        // Burn neighbors
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                let px = x + dx, py = y + dy;
+                                if (px >= 0 && px < simW && py >= 0 && py < simH) {
+                                    let pi = py * simW + px;
+                                    let nMat = grid[pi];
+                                    if (nMat === MATS.WOOD || nMat === MATS.PLANT) {
+                                        if (Math.random() < 0.05) {
+                                            grid[pi] = MATS.FIRE;
+                                            states[pi] = Math.floor(Math.random() * 60) + 30;
+                                            updated[pi] = 1;
+                                        }
+                                    } else if (nMat === MATS.WATER) {
+                                        if (Math.random() < 0.2) {
+                                            grid[i] = MATS.SMOKE; states[i] = 40;
+                                            grid[pi] = MATS.SMOKE; states[pi] = 40;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if (mat === MATS.SMOKE) {
+                        states[i]--;
+                        if (states[i] <= 0) {
+                            grid[i] = MATS.EMPTY;
+                            updated[i] = 1;
+                            continue;
+                        }
+                        let nx = x + Math.floor(Math.random() * 3) - 1;
+                        let ny = y - 1;
+                        if (Math.random() < 0.4) ny = y; 
+                        
+                        if (canMoveTo(nx, ny, mat)) {
+                            swap(nx, ny);
+                        } else {
+                            let lx = x - 1, rx = x + 1;
+                            let canL = canMoveTo(lx, y, mat);
+                            let canR = canMoveTo(rx, y, mat);
+                            if(canL && canR){
+                                if(Math.random()<0.5) swap(lx, y); else swap(rx, y);
+                            } else if (canL) swap(lx, y);
+                            else if (canR) swap(rx, y);
+                        }
+                    }
+                    else if (mat === MATS.PLANT) {
+                        if (Math.random() < 0.02) {
+                            let waterIdx = -1;
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for(let dx = -1; dx <= 1; dx++) {
+                                    let px = x + dx, py = y + dy;
+                                    if(px >= 0 && px < simW && py >= 0 && py < simH) {
+                                        let pi = py * simW + px;
+                                        if (grid[pi] === MATS.WATER) {
+                                            waterIdx = pi;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (waterIdx !== -1) break;
+                            }
+                            
+                            if (waterIdx !== -1) {
+                                grid[waterIdx] = MATS.EMPTY;
+                                let gdx = Math.floor(Math.random() * 3) - 1; 
+                                let gy = y - 1;
+                                if (x+gdx >= 0 && x+gdx < simW && gy >= 0 && gy < simH) {
+                                    let gt = gy * simW + (x+gdx);
+                                    if (grid[gt] === MATS.EMPTY || grid[gt] === MATS.WATER) {
+                                        grid[gt] = MATS.PLANT;
+                                        updated[gt] = 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function render() {
+            for (let i = 0; i < grid.length; i++) {
+                let mat = grid[i];
+                if (mat === MATS.FIRE) {
+                    // Flicker effect for fire
+                    dataBuffer[i] = Math.random() < 0.2 ? colorPalette32[8] : colorPalette32[5];
+                } else {
+                    dataBuffer[i] = colorPalette32[mat];
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        let lastTime = performance.now();
+        let frames = 0;
+        const fpsElem = document.getElementById('fps');
+
+        function loop() {
+            step();
+            render();
+            
+            frames++;
+            let now = performance.now();
+            if (now - lastTime >= 1000) {
+                let pCount = 0;
+                for(let i=0; i<grid.length; i++) if(grid[i]>0) pCount++;
+                fpsElem.textContent = `FPS: ${frames} | Grid: ${simW}x${simH} | Particles: ${pCount}`;
+                frames = 0;
+                lastTime = now;
+            }
+            
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>

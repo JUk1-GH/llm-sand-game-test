@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Falling Sand Simulator | 物理与材质模拟游戏</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="glass-bg"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="pulse-dot"></span>
+                <h1>ANTIGRAVITY SAND</h1>
+                <p class="subtitle">材质与粒子流体模拟器</p>
+            </div>
+            <div class="stats-header">
+                <div class="stat-box">
+                    <span class="stat-label">FPS</span>
+                    <span id="fps-val" class="stat-value">60</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">活动区块</span>
+                    <span id="active-chunks-val" class="stat-value">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">粒子数</span>
+                    <span id="particles-val" class="stat-value">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Body -->
+        <main class="app-main">
+            <!-- Left Side: Canvas & Core Canvas Controls -->
+            <div class="viewport-section glass-panel">
+                <div class="canvas-wrapper">
+                    <canvas id="sand-canvas"></canvas>
+                    
+                    <!-- Inside-canvas interactive UI -->
+                    <div id="victory-overlay" class="overlay hidden">
+                        <div class="overlay-content">
+                            <div class="success-icon">✓</div>
+                            <h2>挑战成功！</h2>
+                            <p id="victory-msg">你成功完成了关卡目标！</p>
+                            <button id="next-level-btn" class="btn-primary">进入下一关</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Canvas Control Bar (Play/Pause, Step, Speed, Clear) -->
+                <div class="action-bar">
+                    <button id="play-pause-btn" class="btn-icon active" title="播放 / 暂停 (空格键)">
+                        <svg id="play-icon" class="hidden" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg id="pause-icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    </button>
+                    <button id="step-btn" class="btn-icon" title="单步调试 (S)">
+                        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm12 12V6l-8.5 6 8.5 6zm-2.5-6L10 8.5v7l5.5-3.5z"/></svg>
+                    </button>
+                    <button id="clear-btn" class="btn-danger-icon" title="清空画布 (C)">
+                        <svg viewBox="0 0 24 24"><path d="M15 4V3H9v1h5M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12M8 9h8v10H8V9z"/></svg>
+                    </button>
+                    <button id="reset-level-btn" class="btn-icon hidden" title="重置关卡 (R)">
+                        <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    </button>
+                    
+                    <div class="divider"></div>
+                    
+                    <div class="slider-control">
+                        <label for="brush-size-slider">画笔: <span id="brush-size-val">5</span>px</label>
+                        <input type="range" id="brush-size-slider" min="1" max="15" value="5">
+                    </div>
+
+                    <div class="slider-control">
+                        <label for="sim-speed-slider">速度: <span id="sim-speed-val">1x</span></label>
+                        <input type="range" id="sim-speed-slider" min="1" max="5" value="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Material Palette, Info Card, Level Select -->
+            <div class="sidebar-section">
+                <!-- Level / Objective Card -->
+                <div class="level-card glass-panel">
+                    <div class="card-title-bar">
+                        <h3>选择模式 / 关卡</h3>
+                        <select id="level-select">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div id="level-objective-panel" class="objective-panel hidden">
+                        <div class="objective-header">
+                            <span class="badge">关卡目标</span>
+                            <span id="level-status" class="level-status-idle">进行中</span>
+                        </div>
+                        <p id="level-desc" class="level-description"></p>
+                        <div id="level-progress-msg" class="level-progress"></div>
+                    </div>
+                </div>
+
+                <!-- Material Palette -->
+                <div class="palette-card glass-panel">
+                    <div class="palette-header">
+                        <h3>材质面板</h3>
+                        <div class="category-tabs">
+                            <button class="tab-btn active" data-category="all">全部</button>
+                            <button class="tab-btn" data-category="solids">固体</button>
+                            <button class="tab-btn" data-category="powders">粉末</button>
+                            <button class="tab-btn" data-category="liquids">液体</button>
+                            <button class="tab-btn" data-category="gases">气体</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Material Grid -->
+                    <div id="materials-grid" class="materials-grid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Custom Physics Controller -->
+                <div class="physics-card glass-panel">
+                    <h3>环境参数</h3>
+                    <div class="physics-controls-grid">
+                        <div class="control-group">
+                            <label>重力方向</label>
+                            <div class="gravity-buttons">
+                                <button class="btn-gravity" data-gravity="down" title="向下重力">↓</button>
+                                <button class="btn-gravity" data-gravity="up" title="向上重力">↑</button>
+                                <button class="btn-gravity" data-gravity="left" title="向左重力">←</button>
+                                <button class="btn-gravity" data-gravity="right" title="向右重力">→</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="wind-slider">风力偏度: <span id="wind-val">无</span></label>
+                            <input type="range" id="wind-slider" min="-3" max="3" value="0" step="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Display -->
+                <div class="info-card glass-panel">
+                    <div class="info-title">
+                        <h4 id="info-name">空气</h4>
+                        <span id="info-type" class="info-type-tag">Empty</span>
+                    </div>
+                    <p id="info-desc">请将鼠标悬停在上方材质卡片上以查看其理化性质。</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Help Icon & Modal -->
+    <button id="help-toggle" class="help-btn" title="物理化学交互说明">?</button>
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <span class="modal-close">&times;</span>
+            <h2>物化材质反应规则</h2>
+            <div class="modal-body-scroll">
+                <div class="reaction-grid">
+                    <div class="reaction-item">
+                        <span class="reaction-icon">🔥 + 🪵/🛢️</span>
+                        <div>
+                            <strong>易燃反应：</strong>
+                            <p>火星或高温岩浆会迅速点燃木头、植物、石油或可燃气，点燃后变成向上升腾的火焰并最终变成烟雾。</p>
+                        </div>
+                    </div>
+                    <div class="reaction-item">
+                        <span class="reaction-icon">💧 + 🌋</span>
+                        <div>
+                            <strong>熔岩凝固：</strong>
+                            <p>岩浆与水接触时，岩浆会被冷却成坚硬的<b>石头</b>，而水则会瞬间蒸发产生<b>水蒸气</b>，水蒸气升入高空有概率冷凝成水滴。</p>
+                        </div>
+                    </div>
+                    <div class="reaction-item">
+                        <span class="reaction-icon">🧪 + 🧱</span>
+                        <div>
+                            <strong>强酸腐蚀：</strong>
+                            <p>酸液会缓慢侵蚀并融化除玻璃和空气以外的绝大部分固体（石头、木头、沙子、火药、TNT），反应过程中释放淡绿色的酸气，并消耗自身。</p>
+                        </div>
+                    </div>
+                    <div class="reaction-item">
+                        <span class="reaction-icon">💥 + 🔥</span>
+                        <div>
+                            <strong>剧烈爆炸：</strong>
+                            <p>火药和 TNT 炸药在接触火星或岩浆时，会立即发生剧烈爆炸。TNT 具有极大的冲击波半径，可以摧毁绝大多数固体阻挡（石头等），并在炸开后抛洒出致命的高温火星。</p>
+                        </div>
+                    </div>
+                    <div class="reaction-item">
+                        <span class="reaction-icon">🌱 + 💧</span>
+                        <div>
+                            <strong>植被蔓延：</strong>
+                            <p>植物在吸收水分（与水接触）后，会不断向四周生根发芽。可以通过水来繁育植被，但要小心干燥的木材或火源将其付之一炬。</p>
+                        </div>
+                    </div>
+                    <div class="reaction-item">
+                        <span class="reaction-icon">🧊 + 🔥</span>
+                        <div>
+                            <strong>冰块融化：</strong>
+                            <p>冰块遇到火源、岩浆或高热的水蒸气时，会迅速吸收热量并液化融解为普通水。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
+</html>

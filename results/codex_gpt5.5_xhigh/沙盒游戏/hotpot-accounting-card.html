@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>火锅 200 元账目图</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
+          Arial, sans-serif;
+        --ink: #121826;
+        --muted: #586174;
+        --paper: #fffdf8;
+        --line: #d9dde8;
+        --red: #e5484d;
+        --green: #168a59;
+        --blue: #2563eb;
+        --amber: #f59e0b;
+        --violet: #6d5dfc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #f0f3f8;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      .poster {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background:
+          linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 34%),
+          radial-gradient(circle at 86% 12%, rgba(245, 158, 11, 0.22), transparent 24%),
+          linear-gradient(180deg, #ffffff 0%, var(--paper) 100%);
+        padding: 52px 64px 46px;
+        color: var(--ink);
+      }
+
+      .header {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 30px;
+      }
+
+      .tag {
+        width: max-content;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        padding: 9px 20px;
+        background: #ffffff;
+        font-size: 26px;
+        font-weight: 800;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 900px;
+        font-size: 70px;
+        line-height: 1.05;
+        letter-spacing: 0;
+        font-weight: 900;
+      }
+
+      .subtitle {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.35;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .highlight {
+        color: var(--red);
+      }
+
+      .two-accounts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        margin-bottom: 28px;
+      }
+
+      .account-box {
+        border: 4px solid var(--ink);
+        border-radius: 26px;
+        padding: 22px 26px 20px;
+        background: #ffffff;
+        box-shadow: 10px 10px 0 rgba(18, 24, 38, 0.12);
+      }
+
+      .account-box h2 {
+        margin: 0 0 14px;
+        font-size: 34px;
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      .account-box p {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.35;
+        font-weight: 800;
+        color: var(--muted);
+      }
+
+      .account-box strong {
+        color: var(--ink);
+        font-size: 36px;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 84px 1fr auto;
+        align-items: center;
+        gap: 22px;
+        border: 3px solid var(--line);
+        border-radius: 24px;
+        padding: 20px 24px;
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .num {
+        display: grid;
+        width: 62px;
+        height: 62px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 900;
+      }
+
+      .step h3 {
+        margin: 0 0 6px;
+        font-size: 34px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .step p {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.25;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .amount {
+        min-width: 164px;
+        text-align: center;
+        border-radius: 18px;
+        padding: 12px 16px 14px;
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 900;
+      }
+
+      .red {
+        background: var(--red);
+      }
+
+      .blue {
+        background: var(--blue);
+      }
+
+      .green {
+        background: var(--green);
+      }
+
+      .amber {
+        background: var(--amber);
+      }
+
+      .ledger {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        margin-bottom: 30px;
+      }
+
+      .ledger-box {
+        border-radius: 24px;
+        padding: 22px 24px 24px;
+        color: #ffffff;
+      }
+
+      .ledger-box h2 {
+        margin: 0 0 16px;
+        font-size: 34px;
+        letter-spacing: 0;
+      }
+
+      .ledger-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 2px solid rgba(255, 255, 255, 0.32);
+        padding: 15px 0 0;
+        margin-top: 15px;
+        font-size: 26px;
+        line-height: 1.25;
+        font-weight: 800;
+      }
+
+      .ledger-row span:last-child {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .boss {
+        background: #111827;
+      }
+
+      .friend {
+        background: #0f766e;
+      }
+
+      .final {
+        display: grid;
+        gap: 12px;
+        border: 5px solid var(--ink);
+        border-radius: 28px;
+        padding: 28px 32px;
+        background: #fffbeb;
+      }
+
+      .final h2 {
+        margin: 0;
+        font-size: 42px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      .final p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 28px;
+        line-height: 1.35;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="poster" aria-label="朋友借 200 买单后又还 200 的账目说明图">
+      <section class="header">
+        <div class="tag">评论区最短账本</div>
+        <h1>老板没亏，<br />这账是平的</h1>
+        <p class="subtitle">
+          别把两个 <span class="highlight">200</span> 混成一笔：
+          <strong>餐费</strong> 和 <strong>借款</strong> 要分开算。
+        </p>
+      </section>
+
+      <section class="two-accounts">
+        <div class="account-box">
+          <h2>餐费账</h2>
+          <p>朋友吃火锅，应该付 <strong>200</strong></p>
+        </div>
+        <div class="account-box">
+          <h2>借款账</h2>
+          <p>老板临时借钱，之后要还 <strong>200</strong></p>
+        </div>
+      </section>
+
+      <section class="timeline">
+        <article class="step">
+          <div class="num">1</div>
+          <div>
+            <h3>朋友吃饭</h3>
+            <p>产生餐费：朋友欠店里 200</p>
+          </div>
+          <div class="amount red">餐费<br />200</div>
+        </article>
+
+        <article class="step">
+          <div class="num">2</div>
+          <div>
+            <h3>老板借他现金</h3>
+            <p>这不是收入，是一笔借款</p>
+          </div>
+          <div class="amount blue">借出<br />200</div>
+        </article>
+
+        <article class="step">
+          <div class="num">3</div>
+          <div>
+            <h3>朋友用这 200 买单</h3>
+            <p>餐费结清，钱回到店里</p>
+          </div>
+          <div class="amount green">买单<br />200</div>
+        </article>
+
+        <article class="step">
+          <div class="num">4</div>
+          <div>
+            <h3>回家再转 200</h3>
+            <p>借款结清，老板借出去的钱也回来了</p>
+          </div>
+          <div class="amount amber">还款<br />200</div>
+        </article>
+      </section>
+
+      <section class="ledger">
+        <div class="ledger-box boss">
+          <h2>老板最后</h2>
+          <div class="ledger-row">
+            <span>餐费收入</span>
+            <span>+200</span>
+          </div>
+          <div class="ledger-row">
+            <span>借款往来</span>
+            <span>-200 +200 = 0</span>
+          </div>
+        </div>
+        <div class="ledger-box friend">
+          <h2>朋友最后</h2>
+          <div class="ledger-row">
+            <span>吃了一顿火锅</span>
+            <span>-200</span>
+          </div>
+          <div class="ledger-row">
+            <span>借款往来</span>
+            <span>+200 -200 = 0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="final">
+        <h2>只有“不还借款”，老板才亏。</h2>
+        <p>既然朋友最后转了 200，还的是借款；餐费早已用借来的 200 结清。所以：老板收了餐费，借款也收回，账平。</p>
+      </section>
+    </main>
+  </body>
+</html>

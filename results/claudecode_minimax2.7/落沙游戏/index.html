@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Sandbox</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0d0d1a;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      border: 2px solid #2a2a4a;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(74, 144, 217, 0.15);
+    }
+
+    canvas {
+      display: block;
+      background: #1a1a2e;
+    }
+
+    .panel {
+      width: 200px;
+      background: rgba(26, 26, 46, 0.95);
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #8888aa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid #2a2a4a;
+      padding-bottom: 8px;
+    }
+
+    .materials-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .material-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #12121f;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 11px;
+      color: #aabbcc;
+    }
+
+    .material-btn:hover {
+      background: #1a1a2e;
+      border-color: #4a4a6a;
+    }
+
+    .material-btn.active {
+      background: #2a2a4a;
+      border-color: #6a6a9a;
+      color: #ffffff;
+    }
+
+    .material-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .control-row label {
+      color: #8888aa;
+    }
+
+    .control-row span {
+      color: #e0e0e0;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: #2a2a4a;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #4a90d9;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      background: #12121f;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      color: #aabbcc;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: #1a1a2e;
+      border-color: #4a4a6a;
+      color: #ffffff;
+    }
+
+    .btn.active {
+      background: #4a90d9;
+      border-color: #4a90d9;
+      color: #ffffff;
+    }
+
+    .stats {
+      font-size: 10px;
+      color: #666688;
+      text-align: center;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="canvas-wrapper">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Materials</div>
+      <div class="materials-grid" id="materials"></div>
+
+      <div class="panel-title">Brush</div>
+      <div class="controls">
+        <div class="control-row">
+          <label>Size</label>
+          <span id="brushSize">3</span>
+        </div>
+        <input type="range" id="brushSlider" min="1" max="10" value="3">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="pauseBtn">Pause</button>
+        <button class="btn" id="clearBtn">Clear</button>
+      </div>
+
+      <div class="stats" id="stats">Particles: 0</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const WIDTH = 400;
+    const HEIGHT = 300;
+    const PARTICLE_SIZE = 4;
+    const GRID_W = Math.floor(WIDTH / PARTICLE_SIZE);
+    const GRID_H = Math.floor(HEIGHT / PARTICLE_SIZE);
+
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    canvas.style.width = WIDTH + 'px';
+    canvas.style.height = HEIGHT + 'px';
+
+    const MATERIALS = {
+      sand:     { name: 'Sand',     color: [200, 160, 80],  density: 3, category: 'solid' },
+      water:    { name: 'Water',    color: [60, 130, 210],   density: 1, category: 'liquid' },
+      stone:    { name: 'Stone',    color: [100, 100, 100], density: 10, category: 'solid' },
+      fire:     { name: 'Fire',     color: [255, 100, 50],  density: 0, category: 'gas', lifetime: 250 },
+      smoke:    { name: 'Smoke',    color: [80, 80, 80],     density: -1, category: 'gas', lifetime: 150 },
+      oil:      { name: 'Oil',      color: [60, 40, 30],     density: 1, category: 'liquid', flammable: true },
+      steam:    { name: 'Steam',    color: [160, 180, 200],  density: -2, category: 'gas', lifetime: 80 },
+      wood:     { name: 'Wood',     color: [120, 70, 30],    density: 10, category: 'solid', flammable: true },
+      lava:     { name: 'Lava',     color: [255, 80, 20],   density: 5, category: 'liquid', lifetime: 800 },
+      ice:      { name: 'Ice',      color: [150, 200, 230],  density: 2, category: 'solid', melts: true }
+    };
+
+    let grid = new Array(GRID_W * GRID_H).fill(null);
+    let updated = new Array(GRID_W * GRID_H).fill(false);
+    let lifetime = new Array(GRID_W * GRID_H).fill(0);
+    let heat = new Array(GRID_W * GRID_H).fill(0);
+    let fireTime = new Array(GRID_W * GRID_H).fill(0);
+
+    let selectedMaterial = 'sand';
+    let brushSize = 3;
+    let isPaused = false;
+    let isMouseDown = false;
+    let isRightClick = false;
+    let mouseX = 0, mouseY = 0;
+
+    const imgData = ctx.createImageData(WIDTH, HEIGHT);
+    const buf = imgData.data;
+
+    function idx(x, y) {
+      return y * GRID_W + x;
+    }
+
+    function inBounds(x, y) {
+      return x >= 0 && x < GRID_W && y >= 0 && y < GRID_H;
+    }
+
+    function getCell(x, y) {
+      if (!inBounds(x, y)) return null;
+      return grid[idx(x, y)];
+    }
+
+    function setCell(x, y, type) {
+      if (!inBounds(x, y)) return;
+      const i = idx(x, y);
+      grid[i] = type;
+      lifetime[i] = type && MATERIALS[type].lifetime ? MATERIALS[type].lifetime : 0;
+      heat[i] = 0;
+      fireTime[i] = 0;
+    }
+
+    function clearCell(x, y) {
+      if (!inBounds(x, y)) return;
+      const i = idx(x, y);
+      grid[i] = null;
+      lifetime[i] = 0;
+      heat[i] = 0;
+      fireTime[i] = 0;
+    }
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function varyColor(base) {
+      const v = 15;
+      return [
+        Math.max(0, Math.min(255, base[0] + rand(-v, v))),
+        Math.max(0, Math.min(255, base[1] + rand(-v, v))),
+        Math.max(0, Math.min(255, base[2] + rand(-v, v)))
+      ];
+    }
+
+    function moveParticle(x, y, nx, ny) {
+      const i = idx(x, y);
+      const ni = idx(nx, ny);
+      grid[ni] = grid[i];
+      lifetime[ni] = lifetime[i];
+      heat[ni] = heat[i];
+      fireTime[ni] = fireTime[i];
+      grid[i] = null;
+      lifetime[i] = 0;
+      heat[i] = 0;
+      fireTime[i] = 0;
+      updated[ni] = true;
+    }
+
+    function isEmpty(x, y) {
+      return inBounds(x, y) && grid[idx(x, y)] === null;
+    }
+
+    function swap(x1, y1, x2, y2) {
+      const i1 = idx(x1, y1);
+      const i2 = idx(x2, y2);
+      const tmp = grid[i1];
+      grid[i1] = grid[i2];
+      grid[i2] = tmp;
+      const tmpL = lifetime[i1];
+      lifetime[i1] = lifetime[i2];
+      lifetime[i2] = tmpL;
+      const tmpH = heat[i1];
+      heat[i1] = heat[i2];
+      heat[i2] = tmpH;
+      const tmpF = fireTime[i1];
+      fireTime[i1] = fireTime[i2];
+      fireTime[i2] = tmpF;
+      updated[i1] = true;
+      updated[i2] = true;
+    }
+
+    function updateSand(x, y) {
+      const below = getCell(x, y + 1);
+      if (isEmpty(x, y + 1)) {
+        moveParticle(x, y, x, y + 1);
+        return;
+      }
+      if (below && MATERIALS[below].density < MATERIALS.sand.density) {
+        swap(x, y, x, y + 1);
+        return;
+      }
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      if (isEmpty(x + dir, y + 1)) {
+        moveParticle(x, y, x + dir, y + 1);
+        return;
+      }
+      if (isEmpty(x - dir, y + 1)) {
+        moveParticle(x, y, x - dir, y + 1);
+        return;
+      }
+      if (isEmpty(x + dir, y)) {
+        moveParticle(x, y, x + dir, y);
+      }
+    }
+
+    function updateWater(x, y) {
+      if (isEmpty(x, y + 1)) {
+        moveParticle(x, y, x, y + 1);
+        return;
+      }
+      const below = getCell(x, y + 1);
+      if (below && MATERIALS[below].density < MATERIALS.water.density) {
+        swap(x, y, x, y + 1);
+        return;
+      }
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      for (let i = 0; i < 3; i++) {
+        if (isEmpty(x + dir, y)) {
+          moveParticle(x, y, x + dir, y);
+          return;
+        }
+        if (isEmpty(x - dir, y)) {
+          moveParticle(x, y, x - dir, y);
+          return;
+        }
+      }
+    }
+
+    function updateFire(x, y) {
+      const i = idx(x, y);
+      lifetime[i]--;
+      if (lifetime[i] <= 0) {
+        setCell(x, y, 'smoke');
+        return;
+      }
+      const color = MATERIALS.fire.color;
+      buf[(y * PARTICLE_SIZE * WIDTH + x * PARTICLE_SIZE) * 4] = Math.min(255, color[0] + Math.random() * 50);
+      buf[(y * PARTICLE_SIZE * WIDTH + x * PARTICLE_SIZE) * 4 + 1] = Math.max(0, color[1] - Math.random() * 80);
+      buf[(y * PARTICLE_SIZE * WIDTH + x * PARTICLE_SIZE) * 4 + 2] = Math.max(0, color[2] - Math.random() * 80);
+
+      if (Math.random() < 0.3) {
+        const ny = y - 1;
+        if (isEmpty(x, ny)) {
+          moveParticle(x, y, x, ny);
+          return;
+        }
+        if (isEmpty(x - 1, ny)) {
+          moveParticle(x, y, x - 1, ny);
+          return;
+        }
+        if (isEmpty(x + 1, ny)) {
+          moveParticle(x, y, x + 1, ny);
+          return;
+        }
+      }
+
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const neighbor = getCell(x + dx, y + dy);
+          if (neighbor === 'water') {
+            setCell(x + dx, y + dy, 'steam');
+            setCell(x, y, 'smoke');
+            return;
+          }
+          if (neighbor === 'oil') {
+            setCell(x + dx, y + dy, 'fire');
+          }
+          if (neighbor === 'wood') {
+            const ni = idx(x + dx, y + dy);
+            fireTime[ni]++;
+            if (fireTime[ni] > 80) {
+              setCell(x + dx, y + dy, 'fire');
+            }
+          }
+        }
+      }
+    }
+
+    function updateSmoke(x, y) {
+      const i = idx(x, y);
+      lifetime[i]--;
+      if (lifetime[i] <= 0) {
+        clearCell(x, y);
+        return;
+      }
+      if (Math.random() < 0.6) {
+        const ny = y - 1;
+        if (isEmpty(x, ny)) {
+          moveParticle(x, y, x, ny);
+          return;
+        }
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        if (isEmpty(x + dir, ny)) {
+          moveParticle(x, y, x + dir, ny);
+          return;
+        }
+        if (isEmpty(x - dir, ny)) {
+          moveParticle(x, y, x - dir, ny);
+          return;
+        }
+      }
+    }
+
+    function updateOil(x, y) {
+      if (isEmpty(x, y + 1)) {
+        moveParticle(x, y, x, y + 1);
+        return;
+      }
+      const below = getCell(x, y + 1);
+      if (below && MATERIALS[below].density < MATERIALS.oil.density) {
+        swap(x, y, x, y + 1);
+        return;
+      }
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      if (isEmpty(x + dir, y + 1)) {
+        moveParticle(x, y, x + dir, y + 1);
+        return;
+      }
+      if (isEmpty(x - dir, y + 1)) {
+        moveParticle(x, y, x - dir, y + 1);
+        return;
+      }
+      if (isEmpty(x + dir, y)) {
+        moveParticle(x, y, x + dir, y);
+      }
+    }
+
+    function updateSteam(x, y) {
+      const i = idx(x, y);
+      lifetime[i]--;
+      if (lifetime[i] <= 0) {
+        if (y <= 2) {
+          setCell(x, y, 'water');
+        } else {
+          clearCell(x, y);
+        }
+        return;
+      }
+      if (Math.random() < 0.8) {
+        const ny = y - 1;
+        if (isEmpty(x, ny)) {
+          moveParticle(x, y, x, ny);
+          return;
+        }
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        if (isEmpty(x + dir, ny)) {
+          moveParticle(x, y, x + dir, ny);
+          return;
+        }
+      }
+    }
+
+    function updateLava(x, y) {
+      const i = idx(x, y);
+      lifetime[i]--;
+      if (lifetime[i] <= 0) {
+        setCell(x, y, 'stone');
+        return;
+      }
+      if (isEmpty(x, y + 1)) {
+        moveParticle(x, y, x, y + 1);
+        return;
+      }
+      const below = getCell(x, y + 1);
+      if (below && MATERIALS[below].density < MATERIALS.lava.density) {
+        swap(x, y, x, y + 1);
+        return;
+      }
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      if (isEmpty(x + dir, y + 1)) {
+        moveParticle(x, y, x + dir, y + 1);
+        return;
+      }
+      if (isEmpty(x - dir, y + 1)) {
+        moveParticle(x, y, x - dir, y + 1);
+        return;
+      }
+
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const neighbor = getCell(x + dx, y + dy);
+          if (neighbor === 'water') {
+            setCell(x + dx, y + dy, 'stone');
+            setCell(x, y, 'stone');
+            return;
+          }
+          if (neighbor === 'ice') {
+            setCell(x + dx, y + dy, 'stone');
+            setCell(x, y, 'stone');
+            return;
+          }
+          if (neighbor === 'oil' || neighbor === 'wood') {
+            setCell(x + dx, y + dy, 'fire');
+          }
+        }
+      }
+    }
+
+    function updateIce(x, y) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const neighbor = getCell(x + dx, y + dy);
+          if (neighbor === 'fire' || neighbor === 'lava' || neighbor === 'steam') {
+            setCell(x, y, 'water');
+            return;
+          }
+        }
+      }
+    }
+
+    function updateParticle(x, y, type) {
+      if (updated[idx(x, y)]) return;
+
+      switch (type) {
+        case 'sand': updateSand(x, y); break;
+        case 'water': updateWater(x, y); break;
+        case 'fire': updateFire(x, y); break;
+        case 'smoke': updateSmoke(x, y); break;
+        case 'oil': updateOil(x, y); break;
+        case 'steam': updateSteam(x, y); break;
+        case 'lava': updateLava(x, y); break;
+        case 'ice': updateIce(x, y); break;
+        case 'stone':
+        case 'wood':
+          break;
+      }
+    }
+
+    function simulate() {
+      if (isPaused) return;
+
+      updated.fill(false);
+
+      for (let y = GRID_H - 1; y >= 0; y--) {
+        const startX = (y % 2 === 0) ? 0 : GRID_W - 1;
+        const endX = (y % 2 === 0) ? GRID_W : -1;
+        const step = (y % 2 === 0) ? 1 : -1;
+
+        for (let x = startX; x !== endX; x += step) {
+          const type = getCell(x, y);
+          if (type) {
+            updateParticle(x, y, type);
+          }
+        }
+      }
+    }
+
+    function render() {
+      buf.fill(0);
+
+      for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+          const gx = Math.floor(x / PARTICLE_SIZE);
+          const gy = Math.floor(y / PARTICLE_SIZE);
+          const type = getCell(gx, gy);
+
+          if (type) {
+            const mat = MATERIALS[type];
+            let color = mat.color;
+
+            if (type === 'fire') {
+              const flicker = Math.random();
+              color = [
+                Math.min(255, mat.color[0] + flicker * 50),
+                Math.max(0, mat.color[1] - flicker * 60),
+                Math.max(0, mat.color[2] - flicker * 80)
+              ];
+            } else if (type === 'lava') {
+              const glow = Math.sin(Date.now() / 100 + gx + gy) * 0.3 + 0.7;
+              color = [
+                Math.min(255, mat.color[0] * glow),
+                Math.max(0, mat.color[1] * glow * 0.5),
+                0
+              ];
+            } else if (type === 'smoke') {
+              const alpha = lifetime[idx(gx, gy)] / MATERIALS.smoke.lifetime;
+              color = [
+                mat.color[0] * alpha,
+                mat.color[1] * alpha,
+                mat.color[2] * alpha
+              ];
+            } else if (type === 'steam') {
+              const alpha = lifetime[idx(gx, gy)] / MATERIALS.steam.lifetime;
+              color = [
+                mat.color[0] * alpha,
+                mat.color[1] * alpha,
+                mat.color[2] * alpha
+              ];
+            } else {
+              const seed = (gx * 7 + gy * 13) % 100;
+              const v = (seed / 100 - 0.5) * 20;
+              color = [
+                Math.max(0, Math.min(255, mat.color[0] + v)),
+                Math.max(0, Math.min(255, mat.color[1] + v)),
+                Math.max(0, Math.min(255, mat.color[2] + v))
+              ];
+            }
+
+            const pi = (y * WIDTH + x) * 4;
+            buf[pi] = color[0];
+            buf[pi + 1] = color[1];
+            buf[pi + 2] = color[2];
+            buf[pi + 3] = 255;
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function draw(mx, my) {
+      const gx = Math.floor(mx / PARTICLE_SIZE);
+      const gy = Math.floor(my / PARTICLE_SIZE);
+
+      for (let dy = -brushSize; dy <= brushSize; dy++) {
+        for (let dx = -brushSize; dx <= brushSize; dx++) {
+          if (dx * dx + dy * dy <= brushSize * brushSize) {
+            const nx = gx + dx;
+            const ny = gy + dy;
+            if (inBounds(nx, ny)) {
+              if (isRightClick) {
+                clearCell(nx, ny);
+              } else if (!grid[idx(nx, ny)]) {
+                setCell(nx, ny, selectedMaterial);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function countParticles() {
+      return grid.filter(c => c !== null).length;
+    }
+
+    function gameLoop() {
+      simulate();
+      render();
+      document.getElementById('stats').textContent = `Particles: ${countParticles()}`;
+      requestAnimationFrame(gameLoop);
+    }
+
+    function setupUI() {
+      const container = document.getElementById('materials');
+
+      Object.entries(MATERIALS).forEach(([key, mat]) => {
+        const btn = document.createElement('button');
+        btn.className = 'material-btn' + (key === selectedMaterial ? ' active' : '');
+        btn.innerHTML = `<span class="material-dot" style="background: rgb(${mat.color.join(',')})"></span>${mat.name}`;
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.material-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedMaterial = key;
+        });
+        container.appendChild(btn);
+      });
+
+      const brushSlider = document.getElementById('brushSlider');
+      const brushSizeDisplay = document.getElementById('brushSize');
+      brushSlider.addEventListener('input', (e) => {
+        brushSize = parseInt(e.target.value);
+        brushSizeDisplay.textContent = brushSize;
+      });
+
+      document.getElementById('pauseBtn').addEventListener('click', function() {
+        isPaused = !isPaused;
+        this.textContent = isPaused ? 'Play' : 'Pause';
+        this.classList.toggle('active', isPaused);
+      });
+
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        grid.fill(null);
+        lifetime.fill(0);
+        heat.fill(0);
+        fireTime.fill(0);
+      });
+    }
+
+    function setupEvents() {
+      canvas.addEventListener('mousedown', (e) => {
+        isMouseDown = true;
+        isRightClick = e.button === 2;
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+        draw(mouseX, mouseY);
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+        draw(mouseX, mouseY);
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        isMouseDown = false;
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        isMouseDown = false;
+      });
+
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -1 : 1;
+        brushSize = Math.max(1, Math.min(10, brushSize + delta));
+        document.getElementById('brushSlider').value = brushSize;
+        document.getElementById('brushSize').textContent = brushSize;
+      });
+
+      let touchStartX, touchStartY;
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        touchStartX = touch.clientX - rect.left;
+        touchStartY = touch.clientY - rect.top;
+        mouseX = touchStartX;
+        mouseY = touchStartY;
+        isRightClick = false;
+        isMouseDown = true;
+        draw(touchStartX, touchStartY);
+      });
+
+      canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        mouseX = touch.clientX - rect.left;
+        mouseY = touch.clientY - rect.top;
+        draw(mouseX, mouseY);
+      });
+
+      canvas.addEventListener('touchend', () => {
+        isMouseDown = false;
+      });
+    }
+
+    setupUI();
+    setupEvents();
+    gameLoop();
+  </script>
+</body>
+</html>

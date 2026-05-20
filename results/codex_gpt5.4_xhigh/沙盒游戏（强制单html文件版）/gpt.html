@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>熔砂实验室</title>
+  <style>
+    :root {
+      --bg-0: #050b12;
+      --bg-1: #0a1623;
+      --bg-2: #12233a;
+      --panel: rgba(10, 19, 32, 0.78);
+      --panel-strong: rgba(8, 14, 24, 0.92);
+      --panel-soft: rgba(18, 31, 48, 0.68);
+      --line: rgba(168, 198, 255, 0.16);
+      --line-strong: rgba(255, 180, 76, 0.28);
+      --text: #eef5ff;
+      --muted: #8ea4bc;
+      --accent: #ffb44f;
+      --accent-2: #5ae4ff;
+      --danger: #ff6a4a;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      --radius-xl: 30px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-pill: 999px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      color: var(--text);
+      font-family: "Avenir Next", "PingFang SC", "Noto Sans SC", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 14%, rgba(90, 228, 255, 0.16), transparent 24%),
+        radial-gradient(circle at 82% 0%, rgba(255, 132, 48, 0.18), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(72, 110, 255, 0.18), transparent 30%),
+        linear-gradient(155deg, var(--bg-0) 0%, var(--bg-1) 48%, #03070d 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.12;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 68px 68px;
+      mask-image: radial-gradient(circle at center, black 42%, transparent 100%);
+    }
+
+    button,
+    input,
+    canvas {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 8px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 7px 12px;
+      border: 1px solid rgba(255, 180, 79, 0.24);
+      border-radius: var(--radius-pill);
+      background: rgba(255, 180, 79, 0.1);
+      color: #ffd8a0;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 68px);
+      line-height: 0.94;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 780px;
+      color: var(--muted);
+      font-size: clamp(14px, 2vw, 17px);
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .action-btn {
+      padding: 12px 16px;
+      border-radius: var(--radius-pill);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
+      color: var(--text);
+      border: 1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(180deg, rgba(255, 180, 79, 0.22), rgba(255, 130, 64, 0.14));
+      border-color: rgba(255, 180, 79, 0.34);
+      color: #fff7ea;
+    }
+
+    .action-btn.alert {
+      background: linear-gradient(180deg, rgba(255, 106, 74, 0.18), rgba(255, 106, 74, 0.1));
+      border-color: rgba(255, 106, 74, 0.28);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) 348px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .stage-panel {
+      padding: 16px;
+    }
+
+    .stage-frame {
+      position: relative;
+      aspect-ratio: var(--stage-aspect, 16 / 10);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(160, 190, 255, 0.14);
+      background:
+        radial-gradient(circle at 50% -10%, rgba(255, 120, 40, 0.12), transparent 38%),
+        radial-gradient(circle at 50% 120%, rgba(71, 100, 255, 0.18), transparent 42%),
+        linear-gradient(180deg, #08111b 0%, #091420 60%, #040910 100%);
+      isolation: isolate;
+    }
+
+    .stage-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 18px 18px;
+      opacity: 0.55;
+      mix-blend-mode: screen;
+    }
+
+    .stage-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.06)),
+        radial-gradient(circle at center, transparent 42%, rgba(0, 0, 0, 0.32) 100%);
+      mix-blend-mode: screen;
+    }
+
+    #simCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      touch-action: none;
+      user-select: none;
+      position: relative;
+      z-index: 2;
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .stat-card {
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-width: 0;
+    }
+
+    .stat-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .stat-card strong {
+      display: block;
+      margin-top: 8px;
+      font-size: clamp(16px, 2vw, 24px);
+      line-height: 1.1;
+      word-break: break-word;
+    }
+
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: sticky;
+      top: 24px;
+    }
+
+    .section {
+      padding: 14px;
+    }
+
+    .section h2,
+    .section h3 {
+      margin: 0 0 12px;
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #d5e7ff;
+    }
+
+    .material-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .material-btn {
+      display: grid;
+      gap: 6px;
+      text-align: left;
+      padding: 12px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+      min-width: 0;
+    }
+
+    .material-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .material-btn.active {
+      border-color: rgba(255, 180, 79, 0.44);
+      background: linear-gradient(180deg, rgba(255, 180, 79, 0.2), rgba(255, 255, 255, 0.05));
+      box-shadow: inset 0 0 0 1px rgba(255, 180, 79, 0.14);
+    }
+
+    .material-btn strong,
+    .material-btn small {
+      min-width: 0;
+    }
+
+    .material-btn strong {
+      font-size: 15px;
+      line-height: 1.1;
+    }
+
+    .material-btn small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .swatch {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.34), var(--swatch) 42%, rgba(0, 0, 0, 0.28));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .material-info {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .material-info p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .tool-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .tool-btn {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .tool-btn.active {
+      border-color: rgba(90, 228, 255, 0.42);
+      background: linear-gradient(180deg, rgba(90, 228, 255, 0.16), rgba(255, 255, 255, 0.05));
+    }
+
+    .range-group {
+      display: grid;
+      gap: 12px;
+    }
+
+    .range-card {
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .range-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    .range-head span:last-child {
+      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+      color: #ffd39a;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      background: transparent;
+      accent-color: var(--accent);
+    }
+
+    .preset-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preset-btn {
+      display: grid;
+      gap: 4px;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .preset-btn strong {
+      font-size: 15px;
+    }
+
+    .preset-btn small {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hint-list {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .hint-list code {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff0d2;
+      font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .control-panel {
+        position: static;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .material-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app-shell {
+        padding: 14px;
+      }
+
+      .topbar {
+        flex-direction: column;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      .status-strip {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .control-panel {
+        display: flex;
+      }
+
+      .material-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      h1 {
+        font-size: clamp(32px, 13vw, 54px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="eyebrow">Material Physics Sandbox</span>
+        <h1>熔砂实验室</h1>
+        <p class="subtitle">单文件落沙模拟。内置粒子物理内核、材质系统、流体/粉体/气体规则，以及火焰、熔岩、酸液等反应链。直接打开即可运行。</p>
+      </div>
+      <div class="toolbar">
+        <button class="action-btn primary" id="pauseBtn" type="button">暂停</button>
+        <button class="action-btn" id="stepBtn" type="button">单步</button>
+        <button class="action-btn" id="seedBtn" type="button">重置场景</button>
+        <button class="action-btn alert" id="clearBtn" type="button">清空</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel stage-panel">
+        <div class="stage-frame" id="stageFrame">
+          <canvas id="simCanvas" aria-label="落沙模拟画布"></canvas>
+        </div>
+        <div class="status-strip">
+          <div class="stat-card">
+            <span>当前材质</span>
+            <strong id="activeMaterialLabel">砂</strong>
+          </div>
+          <div class="stat-card">
+            <span>活跃粒子</span>
+            <strong id="cellCount">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>帧率</span>
+            <strong id="fpsValue">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>提示</span>
+            <strong id="hintLabel">左键绘制，右键擦除</strong>
+          </div>
+        </div>
+      </section>
+
+      <aside class="control-panel">
+        <section class="panel section">
+          <h2>材料仓</h2>
+          <div class="material-grid" id="materialGrid"></div>
+          <div class="material-info">
+            <h3 id="materialInfoTitle">砂</h3>
+            <p id="materialInfoText">重颗粒，能够形成坡面并把较轻液体挤开。</p>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>工具</h2>
+          <div class="tool-row">
+            <button class="tool-btn active" id="drawToolBtn" type="button">绘制</button>
+            <button class="tool-btn" id="eraseToolBtn" type="button">擦除</button>
+          </div>
+          <div class="range-group">
+            <div class="range-card">
+              <div class="range-head">
+                <span>笔刷半径</span>
+                <span id="brushValue">6</span>
+              </div>
+              <input id="brushSizeInput" type="range" min="1" max="18" step="1" value="6">
+            </div>
+            <div class="range-card">
+              <div class="range-head">
+                <span>模拟速度</span>
+                <span id="speedValue">2x</span>
+              </div>
+              <input id="speedInput" type="range" min="1" max="4" step="1" value="2">
+            </div>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>预设</h2>
+          <div class="preset-grid">
+            <button class="preset-btn" type="button" data-preset="lab">
+              <strong>实验室</strong>
+              <small>标准沙盘：砂、水、油、木材和熔岩同时登场。</small>
+            </button>
+            <button class="preset-btn" type="button" data-preset="volcano">
+              <strong>火山口</strong>
+              <small>高压熔岩井和陡峭地形，适合看喷涌与冷却。</small>
+            </button>
+            <button class="preset-btn" type="button" data-preset="monsoon">
+              <strong>暴雨槽</strong>
+              <small>高空水团与沙坝，适合观察流体冲刷与沉积。</small>
+            </button>
+            <button class="preset-btn" type="button" data-preset="reactor">
+              <strong>反应堆</strong>
+              <small>酸液、水、油与木材隔舱摆放，适合制造连锁反应。</small>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>说明</h2>
+          <div class="hint-list">
+            <div><code>左键</code> 连续绘制材质。</div>
+            <div><code>右键</code> 临时切换为橡皮擦。</div>
+            <div><code>空格</code> 暂停 / 继续，<code>E</code> 切换擦除模式。</div>
+            <div><code>[</code> / <code>]</code> 缩小 / 放大笔刷，数字键可快速切材质。</div>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const MAT = {
+      EMPTY: 0,
+      SAND: 1,
+      WATER: 2,
+      STONE: 3,
+      WOOD: 4,
+      FIRE: 5,
+      SMOKE: 6,
+      OIL: 7,
+      LAVA: 8,
+      ACID: 9,
+      GLASS: 10
+    };
+
+    const MATERIALS = {
+      [MAT.EMPTY]: {
+        name: "空",
+        phase: "void",
+        density: 0,
+        color: [8, 15, 26],
+        summary: "留白空间"
+      },
+      [MAT.SAND]: {
+        name: "砂",
+        phase: "powder",
+        density: 68,
+        uiColor: "#d3aa63",
+        palette: [[222, 196, 117], [203, 170, 89], [171, 131, 61]],
+        summary: "重颗粒，能够形成坡面并把较轻液体挤开。"
+      },
+      [MAT.WATER]: {
+        name: "水",
+        phase: "liquid",
+        density: 42,
+        dispersion: 5,
+        uiColor: "#4ea2ff",
+        palette: [[62, 126, 224], [96, 164, 250], [40, 94, 189]],
+        summary: "流动性高，能冷却熔岩并熄灭火焰。"
+      },
+      [MAT.STONE]: {
+        name: "石",
+        phase: "solid",
+        density: 100,
+        uiColor: "#95a1b4",
+        palette: [[112, 120, 132], [89, 96, 108], [133, 142, 153]],
+        summary: "稳定地形，不会移动。"
+      },
+      [MAT.WOOD]: {
+        name: "木",
+        phase: "solid",
+        density: 84,
+        flammable: 0.18,
+        uiColor: "#bb7533",
+        palette: [[138, 91, 46], [168, 110, 55], [103, 66, 32]],
+        summary: "静态可燃物，接触火焰或熔岩会被点燃。"
+      },
+      [MAT.FIRE]: {
+        name: "火",
+        phase: "gas",
+        density: 6,
+        defaultLife: [10, 22],
+        uiColor: "#ff8f2c",
+        palette: [[255, 214, 92], [255, 145, 40], [227, 71, 19]],
+        summary: "热气团，会向上窜并点燃周围可燃材质。"
+      },
+      [MAT.SMOKE]: {
+        name: "烟",
+        phase: "gas",
+        density: 2,
+        dispersion: 4,
+        defaultLife: [55, 130],
+        uiColor: "#8f99a6",
+        palette: [[145, 152, 164], [110, 117, 129], [78, 85, 97]],
+        summary: "向上漂浮，寿命结束后会消散。"
+      },
+      [MAT.OIL]: {
+        name: "油",
+        phase: "liquid",
+        density: 30,
+        dispersion: 6,
+        flammable: 0.35,
+        uiColor: "#6d4e35",
+        palette: [[84, 63, 42], [56, 40, 27], [34, 24, 18]],
+        summary: "轻液体，铺开很快，一点就着。"
+      },
+      [MAT.LAVA]: {
+        name: "熔岩",
+        phase: "liquid",
+        density: 78,
+        dispersion: 2,
+        hot: true,
+        defaultLife: [260, 520],
+        uiColor: "#ff6500",
+        palette: [[255, 162, 46], [255, 96, 10], [198, 35, 0]],
+        summary: "高温重液体，遇水会迅速冷却结壳。"
+      },
+      [MAT.ACID]: {
+        name: "酸",
+        phase: "liquid",
+        density: 36,
+        dispersion: 4,
+        corrosive: true,
+        defaultLife: [180, 360],
+        uiColor: "#83ff5f",
+        palette: [[134, 255, 102], [86, 219, 52], [45, 156, 36]],
+        summary: "腐蚀性液体，可以吞掉砂、木、石。"
+      },
+      [MAT.GLASS]: {
+        name: "玻璃",
+        phase: "solid",
+        density: 94,
+        uiColor: "#9bdcf0",
+        palette: [[170, 223, 235], [128, 190, 206], [104, 158, 172]],
+        summary: "由高温形成的惰性固体，适合作为透明隔断。"
+      }
+    };
+
+    const MATERIAL_ORDER = [
+      MAT.SAND,
+      MAT.WATER,
+      MAT.STONE,
+      MAT.WOOD,
+      MAT.FIRE,
+      MAT.SMOKE,
+      MAT.OIL,
+      MAT.LAVA,
+      MAT.ACID,
+      MAT.GLASS
+    ];
+
+    const state = {
+      gridW: 0,
+      gridH: 0,
+      tick: 0,
+      brushSize: 6,
+      speed: 2,
+      paused: false,
+      selectedMaterial: MAT.SAND,
+      tool: "draw",
+      frames: 0,
+      fps: 0,
+      fpsStamp: 0,
+      filledCount: 0
+    };
+
+    const canvas = document.getElementById("simCanvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    ctx.imageSmoothingEnabled = false;
+
+    const stageFrame = document.getElementById("stageFrame");
+    const materialGrid = document.getElementById("materialGrid");
+    const activeMaterialLabel = document.getElementById("activeMaterialLabel");
+    const materialInfoTitle = document.getElementById("materialInfoTitle");
+    const materialInfoText = document.getElementById("materialInfoText");
+    const cellCountLabel = document.getElementById("cellCount");
+    const fpsLabel = document.getElementById("fpsValue");
+    const hintLabel = document.getElementById("hintLabel");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const stepBtn = document.getElementById("stepBtn");
+    const seedBtn = document.getElementById("seedBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const drawToolBtn = document.getElementById("drawToolBtn");
+    const eraseToolBtn = document.getElementById("eraseToolBtn");
+    const brushSizeInput = document.getElementById("brushSizeInput");
+    const speedInput = document.getElementById("speedInput");
+    const brushValue = document.getElementById("brushValue");
+    const speedValue = document.getElementById("speedValue");
+
+    let types = new Uint8Array(0);
+    let life = new Uint16Array(0);
+    let data = new Uint8Array(0);
+    let variant = new Uint8Array(0);
+    let updated = new Int32Array(0);
+    let imageData = null;
+    let pixels = null;
+    let resizeTimer = 0;
+    let pointerState = null;
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randomFromRange(range) {
+      if (!range) return 0;
+      return randomInt(range[0], range[1]);
+    }
+
+    function index(x, y) {
+      return x + y * state.gridW;
+    }
+
+    function inBounds(x, y) {
+      return x >= 0 && x < state.gridW && y >= 0 && y < state.gridH;
+    }
+
+    function materialDef(id) {
+      return MATERIALS[id];
+    }
+
+    function isHot(id) {
+      return id === MAT.FIRE || id === MAT.LAVA;
+    }
+
+    function sideOrder(i) {
+      const bias = data[i] > 127 ? 1 : -1;
+      if ((state.tick + i) % 53 === 0) {
+        data[i] = 255 - data[i];
+      }
+      return Math.random() < 0.28 ? [-bias, bias] : [bias, -bias];
+    }
+
+    function computeWorldSize() {
+      const compact = window.innerWidth < 760;
+      const reserveW = window.innerWidth > 1180 ? 420 : 40;
+      const reserveH = window.innerWidth > 1180 ? 180 : 360;
+      const cellPixels = compact ? 4.3 : 4.7;
+      const maxW = compact ? 190 : 250;
+      const maxH = compact ? 150 : 170;
+      const availW = Math.max(360, window.innerWidth - reserveW);
+      const availH = Math.max(320, window.innerHeight - reserveH);
+      return {
+        w: clamp(Math.floor(availW / cellPixels), 120, maxW),
+        h: clamp(Math.floor(availH / cellPixels), 90, maxH)
+      };
+    }
+
+    function allocateWorld(width, height, preserve) {
+      const oldW = state.gridW;
+      const oldH = state.gridH;
+      const oldTypes = types;
+      const oldLife = life;
+      const oldData = data;
+      const oldVariant = variant;
+
+      state.gridW = width;
+      state.gridH = height;
+
+      const size = width * height;
+      types = new Uint8Array(size);
+      life = new Uint16Array(size);
+      data = new Uint8Array(size);
+      variant = new Uint8Array(size);
+      updated = new Int32Array(size);
+
+      if (preserve && oldW && oldH) {
+        const copyW = Math.min(oldW, width);
+        const copyH = Math.min(oldH, height);
+        for (let y = 0; y < copyH; y++) {
+          for (let x = 0; x < copyW; x++) {
+            const oldI = x + y * oldW;
+            const newI = x + y * width;
+            types[newI] = oldTypes[oldI];
+            life[newI] = oldLife[oldI];
+            data[newI] = oldData[oldI];
+            variant[newI] = oldVariant[oldI];
+          }
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      imageData = ctx.createImageData(width, height);
+      pixels = imageData.data;
+      stageFrame.style.setProperty("--stage-aspect", `${width} / ${height}`);
+    }
+
+    function clearCell(i) {
+      types[i] = MAT.EMPTY;
+      life[i] = 0;
+      data[i] = 0;
+      variant[i] = 0;
+      updated[i] = state.tick;
+    }
+
+    function setCell(i, material, overrides = {}) {
+      if (material === MAT.EMPTY) {
+        clearCell(i);
+        return;
+      }
+      types[i] = material;
+      life[i] = overrides.life ?? randomFromRange(materialDef(material).defaultLife);
+      data[i] = overrides.data ?? randomInt(0, 255);
+      variant[i] = overrides.variant ?? randomInt(0, 255);
+      updated[i] = state.tick;
+    }
+
+    function swapCells(a, b) {
+      let temp = types[a];
+      types[a] = types[b];
+      types[b] = temp;
+
+      temp = life[a];
+      life[a] = life[b];
+      life[b] = temp;
+
+      temp = data[a];
+      data[a] = data[b];
+      data[b] = temp;
+
+      temp = variant[a];
+      variant[a] = variant[b];
+      variant[b] = temp;
+
+      updated[a] = state.tick;
+      updated[b] = state.tick;
+    }
+
+    function canSinkInto(moving, target) {
+      if (target === MAT.EMPTY) return true;
+      const targetDef = materialDef(target);
+      if (targetDef.phase === "solid") return false;
+      return materialDef(moving).density > targetDef.density;
+    }
+
+    function canRiseInto(moving, target) {
+      if (target === MAT.EMPTY) return true;
+      const targetDef = materialDef(target);
+      if (targetDef.phase === "solid") return false;
+      return materialDef(moving).density < targetDef.density;
+    }
+
+    function tryMoveDirectional(i, x, y, dx, dy, mode) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!inBounds(nx, ny)) return false;
+      const j = index(nx, ny);
+      const moving = types[i];
+      const target = types[j];
+
+      if (mode === "down" && canSinkInto(moving, target)) {
+        swapCells(i, j);
+        return true;
+      }
+
+      if (mode === "up" && canRiseInto(moving, target)) {
+        swapCells(i, j);
+        return true;
+      }
+
+      if (mode === "side") {
+        if (target === MAT.EMPTY) {
+          swapCells(i, j);
+          return true;
+        }
+        const targetDef = materialDef(target);
+        if (targetDef.phase === "gas" && materialDef(moving).density > targetDef.density) {
+          swapCells(i, j);
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function tryFlowSide(i, x, y, order, range) {
+      const moving = types[i];
+      for (const dir of order) {
+        for (let step = 1; step <= range; step++) {
+          const nx = x + dir * step;
+          if (!inBounds(nx, y)) break;
+          const j = index(nx, y);
+          const target = types[j];
+          const targetDef = materialDef(target);
+
+          if (target !== MAT.EMPTY && !(targetDef.phase === "gas" && materialDef(moving).density > targetDef.density)) {
+            break;
+          }
+
+          swapCells(i, j);
+          data[j] = dir > 0 ? 230 : 20;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function tryDriftSide(i, x, y, order, range) {
+      const moving = types[i];
+      for (const dir of order) {
+        for (let step = 1; step <= range; step++) {
+          const nx = x + dir * step;
+          if (!inBounds(nx, y)) break;
+          const j = index(nx, y);
+          const target = types[j];
+
+          if (target === MAT.EMPTY || canRiseInto(moving, target)) {
+            swapCells(i, j);
+            data[j] = dir > 0 ? 220 : 32;
+            return true;
+          }
+
+          if (materialDef(target).phase === "solid") {
+            break;
+          }
+        }
+      }
+      return false;
+    }
+
+    function tryMovePowder(i, x, y) {
+      if (tryMoveDirectional(i, x, y, 0, 1, "down")) return true;
+      const order = sideOrder(i);
+      for (const dir of order) {
+        if (tryMoveDirectional(i, x, y, dir, 1, "down")) return true;
+      }
+      if ((state.tick + i) % 7 === 0) {
+        for (const dir of order) {
+          if (tryMoveDirectional(i, x, y, dir, 0, "side")) return true;
+        }
+      }
+      return false;
+    }
+
+    function tryMoveLiquid(i, x, y, dispersion) {
+      if (tryMoveDirectional(i, x, y, 0, 1, "down")) return true;
+      const order = sideOrder(i);
+      for (const dir of order) {
+        if (tryMoveDirectional(i, x, y, dir, 1, "down")) return true;
+      }
+      return tryFlowSide(i, x, y, order, dispersion);
+    }
+
+    function tryMoveGas(i, x, y, dispersion) {
+      if (tryMoveDirectional(i, x, y, 0, -1, "up")) return true;
+      const order = sideOrder(i);
+      for (const dir of order) {
+        if (tryMoveDirectional(i, x, y, dir, -1, "up")) return true;
+      }
+      return tryDriftSide(i, x, y, order, dispersion);
+    }
+
+    function igniteNeighbors(x, y, strength) {
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (!inBounds(nx, ny)) continue;
+          const j = index(nx, ny);
+          const t = types[j];
+          if (t === MAT.WOOD && Math.random() < strength) {
+            setCell(j, MAT.FIRE, { life: randomInt(22, 38) });
+          } else if (t === MAT.OIL && Math.random() < strength * 1.35) {
+            setCell(j, MAT.FIRE, { life: randomInt(16, 28) });
+          }
+        }
+      }
+    }
+
+    function hotNeighborCount(x, y) {
+      let count = 0;
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (!inBounds(nx, ny)) continue;
+          if (isHot(types[index(nx, ny)])) count++;
+        }
+      }
+      return count;
+    }
+
+    function updateSand(i, x, y) {
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (!inBounds(nx, ny)) continue;
+          if (types[index(nx, ny)] === MAT.LAVA && Math.random() < 0.025) {
+            setCell(i, MAT.GLASS);
+            return;
+          }
+        }
+      }
+      tryMovePowder(i, x, y);
+    }
+
+    function updateWater(i, x, y) {
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (!inBounds(nx, ny)) continue;
+          const j = index(nx, ny);
+          const t = types[j];
+          if (t === MAT.LAVA) {
+            setCell(j, Math.random() < 0.65 ? MAT.STONE : MAT.GLASS);
+            setCell(i, MAT.SMOKE, { life: randomInt(28, 52) });
+            return;
+          }
+          if (t === MAT.FIRE && Math.random() < 0.6) {
+            setCell(j, MAT.SMOKE, { life: randomInt(18, 38) });
+          }
+        }
+      }
+      tryMoveLiquid(i, x, y, materialDef(MAT.WATER).dispersion);
+    }
+
+    function updateStone(i, x, y) {
+      const hot = hotNeighborCount(x, y);
+      if (hot >= 4 && Math.random() < 0.002) {
+        setCell(i, MAT.LAVA, { life: randomInt(160, 240) });
+      }
+    }
+
+    function updateWood(i, x, y) {
+      const hot = hotNeighborCount(x, y);
+      if (hot > 0 && Math.random() < 0.02 * hot) {
+        setCell(i, MAT.FIRE, { life: randomInt(24, 44) });
+      }
+    }
+
+    function updateFire(i, x, y) {
+      if (life[i] > 0) {
+        life[i]--;
+      }
+
+      igniteNeighbors(x, y, 0.08);
+
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (!inBounds(nx, ny)) continue;
+          const j = index(nx, ny);
+          const t = types[j];
+          if (t === MAT.WATER && Math.random() < 0.7) {
+            setCell(j, MAT.SMOKE, { life: randomInt(18, 32) });
+            setCell(i, MAT.SMOKE, { life: randomInt(24, 46) });
+            return;
+          }
+          if (t === MAT.ACID && Math.random() < 0.16) {
+            setCell(j, MAT.SMOKE, { life: randomInt(24, 44) });
+          }
+        }
+      }
+
+      if (life[i] === 0 || Math.random() < 0.025) {
+        if (Math.random() < 0.72) {
+          setCell(i, MAT.SMOKE, { life: randomInt(34, 72) });
+        } else {
+          clearCell(i);
+        }
+        return;
+      }
+
+      if (tryMoveGas(i, x, y, 3)) return;
+      if ((state.tick + i) % 5 === 0) {
+        clearCell(i);
+      }
+    }
+
+    function updateSmoke(i, x, y) {
+      if (life[i] > 0) {
+        life[i]--;
+      }
+      if (life[i] === 0 || Math.random() < 0.008) {
+        clearCell(i);
+        return;
+      }
+      tryMoveGas(i, x, y, materialDef(MAT.SMOKE).dispersion);
+    }
+
+    function updateOil(i, x, y) {
+      if (hotNeighborCount(x, y) > 0 && Math.random() < 0.065) {
+        setCell(i, MAT.FIRE, { life: randomInt(20, 34) });
+        return;
+      }
+      tryMoveLiquid(i, x, y, materialDef(MAT.OIL).dispersion);
+    }
+
+    function updateLava(i, x, y) {
+      if ((state.tick + i) % 3 === 0 && life[i] > 0) {
+        life[i]--;
+      }
+
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (!inBounds(nx, ny)) continue;
+          const j = index(nx, ny);
+          const t = types[j];
+
+          if (t === MAT.WATER) {
+            setCell(j, MAT.SMOKE, { life: randomInt(36, 84) });
+            setCell(i, Math.random() < 0.55 ? MAT.STONE : MAT.GLASS);
+            return;
+          }
+
+          if (t === MAT.SAND && Math.random() < 0.045) {
+            setCell(j, MAT.GLASS);
+          }
+
+          if (t === MAT.WOOD && Math.random() < 0.18) {
+            setCell(j, MAT.FIRE, { life: randomInt(24, 42) });
+          }
+
+          if (t === MAT.OIL && Math.random() < 0.34) {
+            setCell(j, MAT.FIRE, { life: randomInt(20, 34) });
+          }
+
+          if (t === MAT.ACID && Math.random() < 0.18) {
+            setCell(j, MAT.SMOKE, { life: randomInt(26, 60) });
+            life[i] = Math.max(0, life[i] - 40);
+          }
+        }
+      }
+
+      if (types[i] !== MAT.LAVA) return;
+
+      if (life[i] === 0) {
+        setCell(i, MAT.STONE);
+        return;
+      }
+
+      tryMoveLiquid(i, x, y, materialDef(MAT.LAVA).dispersion);
+    }
+
+    function updateAcid(i, x, y) {
+      if ((state.tick + i) % 2 === 0 && life[i] > 0) {
+        life[i]--;
+      }
+
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (!inBounds(nx, ny)) continue;
+          const j = index(nx, ny);
+          const t = types[j];
+
+          if (t === MAT.SAND && Math.random() < 0.04) {
+            clearCell(j);
+            life[i] = Math.max(0, life[i] - 2);
+          } else if (t === MAT.WOOD && Math.random() < 0.06) {
+            clearCell(j);
+            life[i] = Math.max(0, life[i] - 4);
+          } else if (t === MAT.STONE && Math.random() < 0.018) {
+            clearCell(j);
+            life[i] = Math.max(0, life[i] - 10);
+          } else if (t === MAT.LAVA && Math.random() < 0.08) {
+            setCell(j, MAT.STONE);
+            setCell(i, MAT.SMOKE, { life: randomInt(24, 50) });
+            return;
+          } else if (t === MAT.WATER && Math.random() < 0.05) {
+            life[i] = Math.max(0, life[i] - 4);
+          }
+        }
+      }
+
+      if (life[i] === 0) {
+        if (Math.random() < 0.45) {
+          setCell(i, MAT.WATER);
+        } else {
+          clearCell(i);
+        }
+        return;
+      }
+
+      tryMoveLiquid(i, x, y, materialDef(MAT.ACID).dispersion);
+    }
+
+    function updateGlass() {
+      return;
+    }
+
+    function updateCell(i, x, y) {
+      switch (types[i]) {
+        case MAT.SAND:
+          updateSand(i, x, y);
+          break;
+        case MAT.WATER:
+          updateWater(i, x, y);
+          break;
+        case MAT.STONE:
+          updateStone(i, x, y);
+          break;
+        case MAT.WOOD:
+          updateWood(i, x, y);
+          break;
+        case MAT.FIRE:
+          updateFire(i, x, y);
+          break;
+        case MAT.SMOKE:
+          updateSmoke(i, x, y);
+          break;
+        case MAT.OIL:
+          updateOil(i, x, y);
+          break;
+        case MAT.LAVA:
+          updateLava(i, x, y);
+          break;
+        case MAT.ACID:
+          updateAcid(i, x, y);
+          break;
+        case MAT.GLASS:
+          updateGlass(i, x, y);
+          break;
+        default:
+          break;
+      }
+    }
+
+    function stepSimulation() {
+      state.tick++;
+      for (let y = state.gridH - 1; y >= 0; y--) {
+        const reverse = (state.tick + y) % 2 === 0;
+        if (reverse) {
+          for (let x = state.gridW - 1; x >= 0; x--) {
+            const i = index(x, y);
+            if (types[i] === MAT.EMPTY || updated[i] === state.tick) continue;
+            updateCell(i, x, y);
+          }
+        } else {
+          for (let x = 0; x < state.gridW; x++) {
+            const i = index(x, y);
+            if (types[i] === MAT.EMPTY || updated[i] === state.tick) continue;
+            updateCell(i, x, y);
+          }
+        }
+      }
+    }
+
+    function renderWorld() {
+      let ptr = 0;
+      for (let y = 0; y < state.gridH; y++) {
+        for (let x = 0; x < state.gridW; x++) {
+          const i = index(x, y);
+          const t = types[i];
+          let r;
+          let g;
+          let b;
+
+          if (t === MAT.EMPTY) {
+            const pulse = ((x * 13 + y * 17 + state.tick) & 7);
+            r = 6 + pulse;
+            g = 12 + pulse;
+            b = 22 + pulse * 2;
+          } else {
+            const def = materialDef(t);
+            const palette = def.palette;
+            const color = palette[variant[i] % palette.length];
+            r = color[0];
+            g = color[1];
+            b = color[2];
+
+            if (t === MAT.WATER) {
+              const shimmer = ((state.tick + x + y + variant[i]) & 7) * 2;
+              r = clamp(r - 6 + shimmer, 0, 255);
+              g = clamp(g + shimmer, 0, 255);
+              b = clamp(b + shimmer * 2, 0, 255);
+            } else if (t === MAT.FIRE) {
+              const glow = ((state.tick * 2 + x * 3 + variant[i]) & 15) * 6;
+              r = 255;
+              g = clamp(110 + glow, 0, 255);
+              b = clamp(20 + glow / 3, 0, 255);
+            } else if (t === MAT.SMOKE) {
+              const fade = clamp(Math.floor(life[i] * 1.2), 18, 110);
+              r = clamp(r - 10 + fade / 5, 0, 255);
+              g = clamp(g - 10 + fade / 5, 0, 255);
+              b = clamp(b - 10 + fade / 4, 0, 255);
+            } else if (t === MAT.LAVA) {
+              const glow = ((state.tick + x + y + variant[i]) & 7) * 8;
+              r = 255;
+              g = clamp(70 + glow + Math.floor(life[i] / 12), 0, 255);
+              b = clamp(10 + glow / 3, 0, 255);
+            } else if (t === MAT.ACID) {
+              const buzz = ((state.tick + x * 2 + y * 5 + variant[i]) & 7) * 4;
+              r = clamp(r - buzz / 3, 0, 255);
+              g = clamp(g + buzz, 0, 255);
+              b = clamp(b - buzz / 4, 0, 255);
+            } else if (t === MAT.GLASS) {
+              const shine = ((x + y + state.tick) & 3) * 10;
+              r = clamp(r + shine, 0, 255);
+              g = clamp(g + shine, 0, 255);
+              b = clamp(b + shine, 0, 255);
+            }
+          }
+
+          pixels[ptr++] = r;
+          pixels[ptr++] = g;
+          pixels[ptr++] = b;
+          pixels[ptr++] = 255;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function recomputeStats() {
+      let filled = 0;
+      for (let i = 0; i < types.length; i++) {
+        if (types[i] !== MAT.EMPTY) filled++;
+      }
+      state.filledCount = filled;
+      cellCountLabel.textContent = filled.toLocaleString("zh-CN");
+      fpsLabel.textContent = String(state.fps);
+    }
+
+    function updateMaterialInfo() {
+      const def = materialDef(state.selectedMaterial);
+      activeMaterialLabel.textContent = def.name;
+      materialInfoTitle.textContent = def.name;
+      materialInfoText.textContent = def.summary;
+      hintLabel.textContent = state.tool === "erase"
+        ? "擦除模式开启"
+        : `${def.summary.slice(0, 16)}${def.summary.length > 16 ? "..." : ""}`;
+
+      document.querySelectorAll(".material-btn").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.material) === state.selectedMaterial);
+      });
+    }
+
+    function updateToolUi() {
+      drawToolBtn.classList.toggle("active", state.tool === "draw");
+      eraseToolBtn.classList.toggle("active", state.tool === "erase");
+    }
+
+    function setTool(tool) {
+      state.tool = tool;
+      updateToolUi();
+      updateMaterialInfo();
+    }
+
+    function selectMaterial(material) {
+      state.selectedMaterial = material;
+      if (state.tool !== "draw") {
+        state.tool = "draw";
+        updateToolUi();
+      }
+      updateMaterialInfo();
+    }
+
+    function buildMaterialButtons() {
+      MATERIAL_ORDER.forEach((material) => {
+        const def = materialDef(material);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "material-btn";
+        button.dataset.material = String(material);
+        button.innerHTML = `
+          <span class="swatch" style="--swatch:${def.uiColor}"></span>
+          <strong>${def.name}</strong>
+          <small>${def.summary}</small>
+        `;
+        button.addEventListener("click", () => selectMaterial(material));
+        materialGrid.appendChild(button);
+      });
+    }
+
+    function clearWorld() {
+      types.fill(MAT.EMPTY);
+      life.fill(0);
+      data.fill(0);
+      variant.fill(0);
+      updated.fill(0);
+      recomputeStats();
+    }
+
+    function fillRect(x, y, width, height, material, chance = 1) {
+      const endX = clamp(x + width, 0, state.gridW);
+      const endY = clamp(y + height, 0, state.gridH);
+      for (let py = clamp(y, 0, state.gridH); py < endY; py++) {
+        for (let px = clamp(x, 0, state.gridW); px < endX; px++) {
+          if (Math.random() <= chance) {
+            setCell(index(px, py), material);
+          }
+        }
+      }
+    }
+
+    function drawLineWorld(x0, y0, x1, y1, material, thickness = 1, chance = 1) {
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy), 1);
+      for (let step = 0; step <= steps; step++) {
+        const x = Math.round(x0 + dx * (step / steps));
+        const y = Math.round(y0 + dy * (step / steps));
+        for (let oy = -thickness; oy <= thickness; oy++) {
+          for (let ox = -thickness; ox <= thickness; ox++) {
+            if (ox * ox + oy * oy > thickness * thickness) continue;
+            const px = x + ox;
+            const py = y + oy;
+            if (!inBounds(px, py)) continue;
+            if (Math.random() <= chance) {
+              setCell(index(px, py), material);
+            }
+          }
+        }
+      }
+    }
+
+    function carveRect(x, y, width, height) {
+      const endX = clamp(x + width, 0, state.gridW);
+      const endY = clamp(y + height, 0, state.gridH);
+      for (let py = clamp(y, 0, state.gridH); py < endY; py++) {
+        for (let px = clamp(x, 0, state.gridW); px < endX; px++) {
+          clearCell(index(px, py));
+        }
+      }
+    }
+
+    function buildBowlFloor() {
+      const floorY = state.gridH - 16;
+      drawLineWorld(8, floorY, state.gridW - 8, floorY, MAT.STONE, 4, 0.98);
+      drawLineWorld(8, floorY, 22, state.gridH - 40, MAT.STONE, 4, 0.96);
+      drawLineWorld(state.gridW - 8, floorY, state.gridW - 22, state.gridH - 40, MAT.STONE, 4, 0.96);
+    }
+
+    function loadPreset(name) {
+      clearWorld();
+      if (name === "lab") {
+        buildBowlFloor();
+        fillRect(18, state.gridH - 34, 34, 14, MAT.WATER, 0.98);
+        fillRect(54, state.gridH - 48, 54, 24, MAT.SAND, 0.94);
+        fillRect(state.gridW - 82, state.gridH - 38, 26, 12, MAT.OIL, 0.9);
+        fillRect(state.gridW - 56, state.gridH - 48, 12, 22, MAT.WOOD, 0.96);
+        fillRect(Math.floor(state.gridW * 0.5) - 5, state.gridH - 20, 10, 6, MAT.LAVA, 1);
+        fillRect(Math.floor(state.gridW * 0.3), 12, 12, 5, MAT.SMOKE, 0.5);
+      } else if (name === "volcano") {
+        const mid = Math.floor(state.gridW / 2);
+        drawLineWorld(0, state.gridH - 10, mid - 32, state.gridH - 40, MAT.STONE, 7, 0.98);
+        drawLineWorld(state.gridW - 1, state.gridH - 10, mid + 32, state.gridH - 40, MAT.STONE, 7, 0.98);
+        drawLineWorld(mid - 12, state.gridH - 42, mid - 4, state.gridH - 86, MAT.STONE, 6, 1);
+        drawLineWorld(mid + 12, state.gridH - 42, mid + 4, state.gridH - 86, MAT.STONE, 6, 1);
+        fillRect(mid - 12, state.gridH - 86, 24, 56, MAT.LAVA, 1);
+        fillRect(mid - 6, state.gridH - 108, 12, 16, MAT.FIRE, 0.8);
+        fillRect(0, state.gridH - 8, state.gridW, 8, MAT.STONE, 1);
+      } else if (name === "monsoon") {
+        buildBowlFloor();
+        fillRect(10, 10, state.gridW - 20, 8, MAT.WATER, 0.45);
+        fillRect(16, 18, state.gridW - 32, 6, MAT.SMOKE, 0.3);
+        fillRect(24, state.gridH - 52, state.gridW - 48, 16, MAT.SAND, 0.85);
+        fillRect(46, state.gridH - 64, 24, 12, MAT.WOOD, 0.88);
+      } else if (name === "reactor") {
+        fillRect(0, state.gridH - 8, state.gridW, 8, MAT.STONE, 1);
+        const tankW = Math.floor(state.gridW / 4) - 8;
+        for (let n = 0; n < 4; n++) {
+          const startX = 8 + n * (tankW + 6);
+          drawLineWorld(startX, state.gridH - 9, startX, state.gridH - 52, MAT.STONE, 3, 1);
+          drawLineWorld(startX + tankW, state.gridH - 9, startX + tankW, state.gridH - 52, MAT.STONE, 3, 1);
+          drawLineWorld(startX, state.gridH - 9, startX + tankW, state.gridH - 9, MAT.STONE, 3, 1);
+        }
+        fillRect(11, state.gridH - 42, tankW - 6, 26, MAT.WATER, 0.96);
+        fillRect(11 + tankW + 6, state.gridH - 42, tankW - 6, 26, MAT.ACID, 0.92);
+        fillRect(11 + (tankW + 6) * 2, state.gridH - 42, tankW - 6, 26, MAT.OIL, 0.92);
+        fillRect(11 + (tankW + 6) * 3, state.gridH - 42, tankW - 6, 26, MAT.WOOD, 0.95);
+        fillRect(Math.floor(state.gridW / 2) - 4, 18, 8, 8, MAT.LAVA, 1);
+      }
+      recomputeStats();
+    }
+
+    function paintCircle(cx, cy, radius, erase) {
+      const material = erase ? MAT.EMPTY : state.selectedMaterial;
+      const radiusSq = radius * radius;
+      for (let oy = -radius; oy <= radius; oy++) {
+        for (let ox = -radius; ox <= radius; ox++) {
+          if (ox * ox + oy * oy > radiusSq) continue;
+          const px = cx + ox;
+          const py = cy + oy;
+          if (!inBounds(px, py)) continue;
+          if (radius > 2 && Math.random() > 0.96) continue;
+          const i = index(px, py);
+          if (erase) {
+            clearCell(i);
+          } else {
+            setCell(i, material, { data: ox >= 0 ? 220 : 35 });
+          }
+        }
+      }
+    }
+
+    function paintStroke(x0, y0, x1, y1, erase) {
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy), 1);
+      for (let step = 0; step <= steps; step++) {
+        const x = Math.round(x0 + dx * (step / steps));
+        const y = Math.round(y0 + dy * (step / steps));
+        paintCircle(x, y, state.brushSize, erase);
+      }
+      recomputeStats();
+    }
+
+    function eventToGrid(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = clamp(Math.floor((event.clientX - rect.left) / rect.width * state.gridW), 0, state.gridW - 1);
+      const y = clamp(Math.floor((event.clientY - rect.top) / rect.height * state.gridH), 0, state.gridH - 1);
+      return { x, y };
+    }
+
+    function beginPaint(event) {
+      const point = eventToGrid(event);
+      const erase = event.button === 2 || state.tool === "erase";
+      pointerState = {
+        id: event.pointerId,
+        x: point.x,
+        y: point.y,
+        erase
+      };
+      canvas.setPointerCapture(event.pointerId);
+      paintStroke(point.x, point.y, point.x, point.y, erase);
+    }
+
+    function movePaint(event) {
+      if (!pointerState || pointerState.id !== event.pointerId) return;
+      const point = eventToGrid(event);
+      paintStroke(pointerState.x, pointerState.y, point.x, point.y, pointerState.erase);
+      pointerState.x = point.x;
+      pointerState.y = point.y;
+    }
+
+    function endPaint(event) {
+      if (!pointerState || pointerState.id !== event.pointerId) return;
+      canvas.releasePointerCapture(event.pointerId);
+      pointerState = null;
+    }
+
+    function resizeWorld() {
+      const { w, h } = computeWorldSize();
+      const initial = state.gridW === 0;
+      const changed = initial || w !== state.gridW || h !== state.gridH;
+      if (!changed) return;
+      allocateWorld(w, h, !initial);
+      if (initial) {
+        loadPreset("lab");
+      } else {
+        recomputeStats();
+      }
+      renderWorld();
+    }
+
+    function tickFrame(time) {
+      if (!state.fpsStamp) {
+        state.fpsStamp = time;
+      }
+
+      state.frames++;
+      if (time - state.fpsStamp >= 500) {
+        state.fps = Math.round(state.frames * 1000 / (time - state.fpsStamp));
+        state.frames = 0;
+        state.fpsStamp = time;
+        recomputeStats();
+      }
+
+      if (!state.paused) {
+        for (let step = 0; step < state.speed; step++) {
+          stepSimulation();
+        }
+      }
+
+      renderWorld();
+      requestAnimationFrame(tickFrame);
+    }
+
+    function togglePause() {
+      state.paused = !state.paused;
+      pauseBtn.textContent = state.paused ? "继续" : "暂停";
+    }
+
+    function stepOnce() {
+      if (!state.paused) {
+        state.paused = true;
+        pauseBtn.textContent = "继续";
+      }
+      stepSimulation();
+      renderWorld();
+      recomputeStats();
+    }
+
+    function handleKey(event) {
+      if (event.target instanceof HTMLInputElement) return;
+      if (event.code === "Space") {
+        event.preventDefault();
+        togglePause();
+        return;
+      }
+      if (event.key === "e" || event.key === "E") {
+        setTool(state.tool === "draw" ? "erase" : "draw");
+        return;
+      }
+      if (event.key === "[") {
+        state.brushSize = clamp(state.brushSize - 1, 1, 18);
+        brushSizeInput.value = String(state.brushSize);
+        brushValue.textContent = String(state.brushSize);
+        return;
+      }
+      if (event.key === "]") {
+        state.brushSize = clamp(state.brushSize + 1, 1, 18);
+        brushSizeInput.value = String(state.brushSize);
+        brushValue.textContent = String(state.brushSize);
+        return;
+      }
+      if (/^[1-9]$/.test(event.key)) {
+        const idx = Number(event.key) - 1;
+        if (MATERIAL_ORDER[idx] !== undefined) {
+          selectMaterial(MATERIAL_ORDER[idx]);
+        }
+        return;
+      }
+      if (event.key === "0") {
+        selectMaterial(MAT.GLASS);
+      }
+    }
+
+    function bindUi() {
+      pauseBtn.addEventListener("click", togglePause);
+      stepBtn.addEventListener("click", stepOnce);
+      seedBtn.addEventListener("click", () => loadPreset("lab"));
+      clearBtn.addEventListener("click", () => {
+        clearWorld();
+        renderWorld();
+      });
+      drawToolBtn.addEventListener("click", () => setTool("draw"));
+      eraseToolBtn.addEventListener("click", () => setTool("erase"));
+      brushSizeInput.addEventListener("input", () => {
+        state.brushSize = Number(brushSizeInput.value);
+        brushValue.textContent = String(state.brushSize);
+      });
+      speedInput.addEventListener("input", () => {
+        state.speed = Number(speedInput.value);
+        speedValue.textContent = `${state.speed}x`;
+      });
+      document.querySelectorAll("[data-preset]").forEach((button) => {
+        button.addEventListener("click", () => loadPreset(button.dataset.preset));
+      });
+      canvas.addEventListener("pointerdown", beginPaint);
+      canvas.addEventListener("pointermove", movePaint);
+      canvas.addEventListener("pointerup", endPaint);
+      canvas.addEventListener("pointercancel", endPaint);
+      canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+      window.addEventListener("keydown", handleKey);
+      window.addEventListener("resize", () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(resizeWorld, 120);
+      });
+    }
+
+    function init() {
+      buildMaterialButtons();
+      bindUi();
+      resizeWorld();
+      updateToolUi();
+      updateMaterialInfo();
+      brushValue.textContent = String(state.brushSize);
+      speedValue.textContent = `${state.speed}x`;
+      requestAnimationFrame(tickFrame);
+    }
+
+    init();
+  </script>
+</body>
+</html>

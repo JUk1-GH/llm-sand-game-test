@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>落沙模拟器 - Falling Sand Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#08080c;color:#e0e0e0;overflow:hidden;height:100vh;display:flex;flex-direction:column;user-select:none}
+#toolbar{background:rgba(16,16,24,0.85);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,0.08);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;z-index:10}
+.logo{font-weight:700;font-size:1.05rem;background:linear-gradient(135deg,#f0c040,#e06030);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.sep{width:1px;height:28px;background:rgba(255,255,255,0.1);margin:0 4px}
+#materials{display:flex;gap:6px;flex-wrap:wrap}
+.mat-btn{width:36px;height:36px;border-radius:9px;border:2.5px solid transparent;cursor:pointer;transition:all .18s ease;position:relative;display:flex;align-items:center;justify-content:center;font-size:16px}
+.mat-btn:hover{transform:scale(1.18);z-index:2}
+.mat-btn.active{border-color:#fff;box-shadow:0 0 14px rgba(255,255,255,0.25)}
+.mat-btn .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}
+.mat-btn:hover .tip{opacity:1}
+.ctrl{display:flex;align-items:center;gap:6px;font-size:12px;color:#aaa}
+.ctrl label{white-space:nowrap}
+.ctrl input[type=range]{-webkit-appearance:none;width:80px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;outline:none}
+.ctrl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:linear-gradient(135deg,#f0c040,#e06030);border-radius:50%;cursor:pointer}
+.ctrl-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#ccc;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;transition:all .15s}
+.ctrl-btn:hover{background:rgba(255,255,255,0.15);color:#fff}
+#stats{font-size:11px;color:#777;display:flex;gap:12px;margin-left:auto;white-space:nowrap}
+#canvas-container{flex:1;position:relative;overflow:hidden;background:#08080c}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}
+#cursor-ring{position:fixed;border:1.5px solid rgba(255,255,255,0.45);border-radius:50%;pointer-events:none;z-index:100;transform:translate(-50%,-50%);transition:width .1s,height .1s}
+#sel-name{font-size:12px;font-weight:600;color:#ddd;white-space:nowrap;min-width:48px;text-align:center}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <span class="logo">落沙模拟器</span>
+  <div class="sep"></div>
+  <div id="materials"></div>
+  <div class="sep"></div>
+  <span id="sel-name">沙子</span>
+  <div class="sep"></div>
+  <div class="ctrl"><label>笔刷</label><input type="range" id="brush-size" min="1" max="15" value="3"><span id="bv">3</span></div>
+  <div class="ctrl"><label>速度</label><input type="range" id="sim-speed" min="1" max="5" value="3"></div>
+  <div class="sep"></div>
+  <button class="ctrl-btn" id="pause-btn">⏸ 暂停</button>
+  <button class="ctrl-btn" id="clear-btn">🗑 清空</button>
+  <div id="stats"><span id="fps-display">60 FPS</span><span id="count-display">0 粒子</span></div>
+</div>
+<div id="canvas-container"><canvas id="canvas"></canvas></div>
+<div id="cursor-ring"></div>
+
+<script>
+const MAT={EMPTY:0,SAND:1,WATER:2,STONE:3,WOOD:4,FIRE:5,SMOKE:6,OIL:7,LAVA:8,ACID:9,STEAM:10,GUNPOWDER:11,PLANT:12,ICE:13};
+const ERASER=-1;
+
+const MATINFO=[
+  null,
+  {name:'沙子',emoji:'🏖️',color:[194,178,128],state:'powder',density:5,flammable:false,grad:'linear-gradient(135deg,#d4b896,#b89a6e)'},
+  {name:'水',emoji:'💧',color:[30,120,230],state:'liquid',density:3,flammable:false,grad:'linear-gradient(135deg,#1e90ff,#0060cc)'},
+  {name:'石头',emoji:'🪨',color:[130,130,135],state:'solid',density:10,flammable:false,grad:'linear-gradient(135deg,#888,#666)'},
+  {name:'木头',emoji:'🪵',color:[139,90,43],state:'solid',density:6,flammable:true,grad:'linear-gradient(135deg,#8B6914,#6B4914)'},
+  {name:'火',emoji:'🔥',color:[255,100,0],state:'gas',density:-1,flammable:false,grad:'linear-gradient(135deg,#ff6600,#ff2200)'},
+  {name:'烟雾',emoji:'💨',color:[80,80,85],state:'gas',density:-2,flammable:false,grad:'linear-gradient(135deg,#666,#333)'},
+  {name:'油',emoji:'🛢️',color:[60,55,20],state:'liquid',density:2,flammable:true,grad:'linear-gradient(135deg,#4a4520,#2a2510)'},
+  {name:'岩浆',emoji:'🌋',color:[220,80,10],state:'liquid',density:8,flammable:false,grad:'linear-gradient(135deg,#ee4400,#cc2200)'},
+  {name:'酸液',emoji:'⚗️',color:[50,220,80],state:'liquid',density:4,flammable:false,grad:'linear-gradient(135deg,#00ee55,#00aa33)'},
+  {name:'蒸汽',emoji:'♨️',color:[200,210,230],state:'gas',density:-2,flammable:false,grad:'linear-gradient(135deg,#cce,#99b)'},
+  {name:'火药',emoji:'💣',color:[70,65,60],state:'powder',density:4,flammable:true,grad:'linear-gradient(135deg,#555,#222)'},
+  {name:'植物',emoji:'🌿',color:[40,160,50],state:'solid',density:5,flammable:true,grad:'linear-gradient(135deg,#33bb33,#228B22)'},
+  {name:'冰',emoji:'🧊',color:[170,220,245],state:'solid',density:4,flammable:false,grad:'linear-gradient(135deg,#b0e0ff,#7ec8e3)'}
+];
+
+const CELL=3;
+let cols,rows,totalCells;
+let grid,colorR,colorG,colorB,life,upd;
+let canvas,ctx,imageData,imgData;
+let selected=MAT.SAND,brushSize=3,simSpeed=3,paused=false;
+let isDrawing=false,lastCX=-1,lastCY=-1;
+let frameCount=0,particleCount=0;
+let fpsFrames=0,fpsTime=performance.now(),currentFPS=60;
+const N4=[[0,-1],[0,1],[-1,0],[1,0]];
+const N8=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+
+function init(){
+  canvas=document.getElementById('canvas');
+  ctx=canvas.getContext('2d');
+  const c=document.getElementById('canvas-container');
+  const r=c.getBoundingClientRect();
+  cols=Math.floor(r.width/CELL);
+  rows=Math.floor(r.height/CELL);
+  canvas.width=cols;canvas.height=rows;
+  totalCells=cols*rows;
+  grid=new Uint8Array(totalCells);
+  colorR=new Uint8Array(totalCells);
+  colorG=new Uint8Array(totalCells);
+  colorB=new Uint8Array(totalCells);
+  life=new Int16Array(totalCells);
+  upd=new Uint8Array(totalCells);
+  imageData=ctx.createImageData(cols,rows);
+  imgData=imageData.data;
+  imgData.fill(255);
+  buildUI();
+  setupInput();
+  requestAnimationFrame(loop);
+}
+
+function buildUI(){
+  const mc=document.getElementById('materials');
+  const allMats=[MAT.SAND,MAT.WATER,MAT.STONE,MAT.WOOD,MAT.FIRE,MAT.OIL,MAT.LAVA,MAT.ACID,MAT.GUNPOWDER,MAT.PLANT,MAT.ICE,MAT.STEAM,MAT.SMOKE,ERASER];
+  allMats.forEach(m=>{
+    const b=document.createElement('div');
+    b.className='mat-btn'+(m===selected?' active':'');
+    if(m===ERASER){
+      b.style.background='linear-gradient(135deg,#ff4466,#cc2244)';
+      b.innerHTML='<span class="tip">橡皮擦 (E)</span>✏️';
+    }else{
+      b.style.background=MATINFO[m].grad;
+      b.innerHTML=`<span class="tip">${MATINFO[m].name}</span>${MATINFO[m].emoji}`;
+    }
+    b.onclick=()=>{
+      document.querySelectorAll('.mat-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      selected=m;
+      document.getElementById('sel-name').textContent=m===ERASER?'橡皮擦':MATINFO[m].name;
+    };
+    mc.appendChild(b);
+  });
+  document.getElementById('brush-size').oninput=e=>{brushSize=+e.target.value;document.getElementById('bv').textContent=brushSize};
+  document.getElementById('sim-speed').oninput=e=>{simSpeed=+e.target.value};
+  document.getElementById('pause-btn').onclick=()=>{paused=!paused;document.getElementById('pause-btn').textContent=paused?'▶ 继续':'⏸ 暂停'};
+  document.getElementById('clear-btn').onclick=()=>{grid.fill(0);colorR.fill(0);colorG.fill(0);colorB.fill(0);life.fill(0)};
+  document.addEventListener('keydown',e=>{
+    if(e.key===' '){paused=!paused;document.getElementById('pause-btn').textContent=paused?'▶ 继续':'⏸ 暂停'}
+    if(e.key==='e'||e.key==='E'){selected=ERASER;refreshBtnUI()}
+    if(e.key>='1'&&e.key<='9'){const i=+e.key;if(i<=13){selected=i;refreshBtnUI()}}
+    if(e.key==='0'){selected=MAT.STEAM;refreshBtnUI()}
+  });
+}
+function refreshBtnUI(){
+  const btns=document.querySelectorAll('.mat-btn');
+  const allMats=[MAT.SAND,MAT.WATER,MAT.STONE,MAT.WOOD,MAT.FIRE,MAT.OIL,MAT.LAVA,MAT.ACID,MAT.GUNPOWDER,MAT.PLANT,MAT.ICE,MAT.STEAM,MAT.SMOKE,ERASER];
+  btns.forEach((b,i)=>{b.classList.toggle('active',allMats[i]===selected)});
+  document.getElementById('sel-name').textContent=selected===ERASER?'橡皮擦':MATINFO[selected].name;
+}
+
+function setupInput(){
+  const cr=document.getElementById('cursor-ring');
+  function updateCursor(e){
+    const s=brushSize*CELL*2+CELL;
+    cr.style.width=s+'px';cr.style.height=s+'px';
+    cr.style.left=e.clientX+'px';cr.style.top=e.clientY+'px';
+  }
+  function getCell(e){
+    const r=canvas.getBoundingClientRect();
+    return{x:Math.floor((e.clientX-r.left)*(cols/r.width)),y:Math.floor((e.clientY-r.top)*(rows/r.height))};
+  }
+  canvas.addEventListener('mousedown',e=>{isDrawing=true;const c=getCell(e);lastCX=c.x;lastCY=c.y;drawAt(c.x,c.y)});
+  canvas.addEventListener('mousemove',e=>{
+    updateCursor(e);
+    if(!isDrawing)return;
+    const c=getCell(e);
+    if(lastCX>=0)drawLine(lastCX,lastCY,c.x,c.y);
+    else drawAt(c.x,c.y);
+    lastCX=c.x;lastCY=c.y;
+  });
+  canvas.addEventListener('mouseup',()=>{isDrawing=false;lastCX=lastCY=-1});
+  canvas.addEventListener('mouseleave',()=>{isDrawing=false;lastCX=lastCY=-1;cr.style.opacity='0'});
+  canvas.addEventListener('mouseenter',()=>{cr.style.opacity='1'});
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();isDrawing=true;const t=e.touches[0];const c=getCell(t);lastCX=c.x;lastCY=c.y;drawAt(c.x,c.y)},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];const c=getCell(t);if(lastCX>=0)drawLine(lastCX,lastCY,c.x,c.y);else drawAt(c.x,c.y);lastCX=c.x;lastCY=c.y},{passive:false});
+  canvas.addEventListener('touchend',()=>{isDrawing=false;lastCX=lastCY=-1});
+}
+
+function drawLine(x0,y0,x1,y1){
+  const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;
+  let err=dx-dy;
+  while(true){drawAt(x0,y0);if(x0===x1&&y0===y1)break;const e2=2*err;if(e2>-dy){err-=dy;x0+=sx}if(e2<dx){err+=dx;y0+=sy}}
+}
+
+function drawAt(cx,cy){
+  for(let dy=-brushSize;dy<=brushSize;dy++)for(let dx=-brushSize;dx<=brushSize;dx++){
+    if(dx*dx+dy*dy>brushSize*brushSize)continue;
+    const x=cx+dx,y=cy+dy;
+    if(x<0||x>=cols||y<0||y>=rows)continue;
+    const i=y*cols+x;
+    if(selected===ERASER){grid[i]=0;colorR[i]=colorG[i]=colorB[i]=0;life[i]=0;continue}
+    if(grid[i]!==MAT.EMPTY)continue;
+    if(Math.random()>0.75)continue;
+    placeCell(i,selected);
+  }
+}
+
+function randVar(v,range){return Math.max(0,Math.min(255,v+((Math.random()-0.5)*range)|0))}
+function placeCell(i,type){
+  grid[i]=type;
+  const c=MATINFO[type].color;
+  const v=type===MAT.FIRE||type===MAT.LAVA?40:25;
+  colorR[i]=randVar(c[0],v);colorG[i]=randVar(c[1],v);colorB[i]=randVar(c[2],v);
+  if(type===MAT.FIRE)life[i]=30+(Math.random()*35)|0;
+  else if(type===MAT.SMOKE)life[i]=40+(Math.random()*50)|0;
+  else if(type===MAT.STEAM)life[i]=50+(Math.random()*60)|0;
+  else life[i]=0;
+  upd[i]=1;
+}
+function clearCell(i){grid[i]=0;colorR[i]=colorG[i]=colorB[i]=0;life[i]=0}
+function inB(x,y){return x>=0&&x<cols&&y>=0&&y<rows}
+function isLiquid(t){return t===MAT.WATER||t===MAT.OIL||t===MAT.ACID||t===MAT.LAVA}
+function getDensity(t){return t>0&&t<MATINFO.length?MATINFO[t].density:0}
+function swap(a,b){
+  let t;
+  t=grid[a];grid[a]=grid[b];grid[b]=t;
+  t=colorR[a];colorR[a]=colorR[b];colorR[b]=t;
+  t=colorG[a];colorG[a]=colorG[b];colorG[b]=t;
+  t=colorB[a];colorB[a]=colorB[b];colorB[b]=t;
+  t=life[a];life[a]=life[b];life[b]=t;
+  upd[a]=upd[b]=1;
+}
+function move(a,b){
+  grid[b]=grid[a];colorR[b]=colorR[a];colorG[b]=colorG[a];colorB[b]=colorB[a];life[b]=life[a];
+  grid[a]=0;colorR[a]=colorG[a]=colorB[a]=0;life[a]=0;
+  upd[b]=1;
+}
+
+function update(){
+  frameCount++;
+  upd.fill(0);
+  const dir=frameCount&1;
+  for(let y=rows-1;y>=0;y--){
+    const sx=dir?0:cols-1,ex=dir?cols:-1,st=dir?1:-1;
+    for(let x=sx;x!==ex;x+=st){
+      const i=y*cols+x;
+      if(upd[i]||grid[i]===0)continue;
+      switch(grid[i]){
+        case MAT.SAND:updatePowder(x,y,5);break;
+        case MAT.GUNPOWDER:updateGunpowder(x,y);break;
+        case MAT.WATER:updateLiquid(x,y,3,5);break;
+        case MAT.OIL:updateLiquid(x,y,2,3);break;
+        case MAT.LAVA:updateLavaCell(x,y);break;
+        case MAT.ACID:updateAcidCell(x,y);break;
+        case MAT.FIRE:updateFire(x,y);break;
+        case MAT.SMOKE:updateGas(x,y,MAT.SMOKE);break;
+        case MAT.STEAM:updateSteam(x,y);break;
+        case MAT.PLANT:updatePlant(x,y);break;
+        case MAT.ICE:updateIce(x,y);break;
+      }
+    }
+  }
+}
+
+function updatePowder(x,y,dens){
+  const i=y*cols+x;
+  if(y+1<rows){
+    const b=(y+1)*cols+x;
+    if(grid[b]===0){move(i,b);return}
+    if(isLiquid(grid[b])&&dens>getDensity(grid[b])){swap(i,b);return}
+  }
+  const d=Math.random()<.5?-1:1;
+  for(const dd of[d,-d]){
+    const nx=x+dd;
+    if(nx>=0&&nx<cols&&y+1<rows){
+      const di=(y+1)*cols+nx;
+      if(grid[di]===0){move(i,di);return}
+      if(isLiquid(grid[di])&&dens>getDensity(grid[di])){swap(i,di);return}
+    }
+  }
+}
+
+function updateGunpowder(x,y){
+  const i=y*cols+x;
+  for(const[dx,dy]of N8){
+    const nx=x+dx,ny=y+dy;
+    if(!inB(nx,ny))continue;
+    const ni=ny*cols+nx;
+    if(grid[ni]===MAT.FIRE||grid[ni]===MAT.LAVA){
+      explode(x,y,6+(Math.random()*4)|0);return;
+    }
+  }
+  updatePowder(x,y,4);
+}
+
+function updateLiquid(x,y,dens,disp){
+  const i=y*cols+x,type=grid[i];
+  if(y+1<rows){
+    const b=(y+1)*cols+x;
+    if(grid[b]===0){move(i,b);return}
+    if(isLiquid(grid[b])&&dens>getDensity(grid[b])){swap(i,b);return}
+  }
+  const d=Math.random()<.5?-1:1;
+  for(const dd of[d,-d]){
+    const nx=x+dd;
+    if(inB(nx,y+1)){
+      const di=(y+1)*cols+nx;
+      if(grid[di]===0){move(i,di);return}
+      if(isLiquid(grid[di])&&dens>getDensity(grid[di])){swap(i,di);return}
+    }
+  }
+  const sd=Math.random()<.5?-1:1;
+  for(const dd of[sd,-sd]){
+    for(let s=1;s<=disp;s++){
+      const nx=x+dd*s;
+      if(!inB(nx,y))break;
+      const si=y*cols+nx;
+      if(grid[si]===0){move(i,si);return}
+      if(grid[si]!==type)break;
+    }
+  }
+}
+
+function updateLavaCell(x,y){
+  const i=y*cols+x;
+  for(const[dx,dy]of N4){
+    const nx=x+dx,ny=y+dy;
+    if(!inB(nx,ny))continue;
+    const ni=ny*cols+nx,n=grid[ni];
+    if(n===MAT.WATER){placeCell(i,MAT.STONE);placeCell(ni,MAT.STEAM);return}
+    if(n===MAT.ICE){placeCell(ni,MAT.WATER);if(Math.random()<.05){placeCell(i,MAT.STONE);return}}
+    if(n===MAT.WOOD&&Math.random()<.04){placeCell(ni,MAT.FIRE);return}
+    if(n===MAT.OIL&&Math.random()<.08){placeCell(ni,MAT.FIRE);return}
+    if(n===MAT.PLANT&&Math.random()<.04){placeCell(ni,MAT.FIRE);return}
+    if(n===MAT.GUNPOWDER&&Math.random()<.15){explode(nx,ny,7);return}
+  }
+  updateLiquid(x,y,8,1);
+}
+
+function updateAcidCell(x,y){
+  const i=y*cols+x;
+  for(const[dx,dy]of N4){
+    const nx=x+dx,ny=y+dy;
+    if(!inB(nx,ny))continue;
+    const ni=ny*cols+nx,n=grid[ni];
+    if(n!==0&&n!==MAT.ACID&&n!==MAT.STONE&&Math.random()<.08){
+      clearCell(ni);
+      if(Math.random()<.45){
+        if(Math.random()<.3)placeCell(i,MAT.SMOKE);else clearCell(i);
+        return;
+      }
+    }
+  }
+  updateLiquid(x,y,4,3);
+}
+
+function updateFire(x,y){
+  const i=y*cols+x;
+  life[i]--;
+  if(life[i]<=0){
+    if(Math.random()<.55)placeCell(i,MAT.SMOKE);else clearCell(i);
+    return;
+  }
+  for(const[dx,dy]of N8){
+    const nx=x+dx,ny=y+dy;
+    if(!inB(nx,ny))continue;
+    const ni=ny*cols+nx,n=grid[ni];
+    if(n===MAT.WATER){clearCell(i);placeCell(ni,MAT.STEAM);return}
+    if(n===MAT.WOOD&&Math.random()<.025)placeCell(ni,MAT.FIRE);
+    if(n===MAT.OIL&&Math.random()<.12)placeCell(ni,MAT.FIRE);
+    if(n===MAT.PLANT&&Math.random()<.035)placeCell(ni,MAT.FIRE);
+    if(n===MAT.GUNPOWDER&&Math.random()<.25){explode(nx,ny,7+(Math.random()*4)|0);return}
+    if(n===MAT.ICE){placeCell(ni,MAT.WATER);if(Math.random()<.15){clearCell(i);return}}
+  }
+  const r=Math.random();
+  if(r<.35&&y>0){
+    const a=(y-1)*cols+x;
+    if(grid[a]===0){move(i,a);return}
+  }else if(r<.55){
+    const nx=x+(Math.random()<.5?-1:1);
+    if(inB(nx,y-1)){const a=(y-1)*cols+nx;if(grid[a]===0){move(i,a);return}}
+  }
+}
+
+function updateGas(x,y,type){
+  const i=y*cols+x;
+  life[i]--;
+  if(life[i]<=0){clearCell(i);return}
+  const r=Math.random();
+  if(r<.3&&y>0){
+    const a=(y-1)*cols+x;
+    if(grid[a]===0){move(i,a);return}
+  }else if(r<.5){
+    const nx=x+(Math.random()<.5?-1:1);
+    if(inB(nx,y-1)){const a=(y-1)*cols+nx;if(grid[a]===0){move(i,a);return}}
+  }else if(r<.65){
+    const nx=x+(Math.random()<.5?-1:1);
+    if(inB(nx,y)){const a=y*cols+nx;if(grid[a]===0){move(i,a);return}}
+  }
+}
+
+function updateSteam(x,y){
+  const i=y*cols+x;
+  life[i]--;
+  if(life[i]<=0){
+    if(Math.random()<.35)placeCell(i,MAT.WATER);else clearCell(i);
+    return;
+  }
+  updateGas(x,y,MAT.STEAM);
+}
+
+function updatePlant(x,y){
+  const i=y*cols+x;
+  for(const[dx,dy]of N4){
+    const nx=x+dx,ny=y+dy;
+    if(!inB(nx,ny))continue;
+    const ni=ny*cols+nx;
+    if(grid[ni]===MAT.WATER&&Math.random()<.008)placeCell(ni,MAT.PLANT);
+  }
+}
+
+function updateIce(x,y){
+  const i=y*cols+x;
+  for(const[dx,dy]of N4){
+    const nx=x+dx,ny=y+dy;
+    if(!inB(nx,ny))continue;
+    const ni=ny*cols+nx,n=grid[ni];
+    if(n===MAT.FIRE||n===MAT.LAVA){placeCell(i,MAT.WATER);return}
+    if(n===MAT.WATER&&Math.random()<.003)placeCell(ni,MAT.ICE);
+  }
+}
+
+function explode(cx,cy,rad){
+  for(let dy=-rad;dy<=rad;dy++)for(let dx=-rad;dx<=rad;dx++){
+    const d2=dx*dx+dy*dy;if(d2>rad*rad)continue;
+    const nx=cx+dx,ny=cy+dy;
+    if(!inB(nx,ny))continue;
+    const ni=ny*cols+nx;
+    if(grid[ni]===MAT.STONE)continue;
+    const dist=Math.sqrt(d2);
+    if(dist<rad*.4){placeCell(ni,MAT.FIRE)}
+    else if(dist<rad*.7){
+      if(grid[ni]===MAT.GUNPOWDER){placeCell(ni,MAT.FIRE)}
+      else if(Math.random()<.6)placeCell(ni,MAT.FIRE);else clearCell(ni);
+    }else{
+      if(grid[ni]===MAT.GUNPOWDER){placeCell(ni,MAT.FIRE)}
+      else if(Math.random()<.3){if(Math.random()<.4)placeCell(ni,MAT.SMOKE);else clearCell(ni)}
+    }
+  }
+}
+
+function render(){
+  let count=0;
+  const now=performance.now();
+  for(let i=0;i<totalCells;i++){
+    const pi=i<<2;
+    const t=grid[i];
+    if(t===0){
+      imgData[pi]=8;imgData[pi+1]=8;imgData[pi+2]=12;
+    }else{
+      count++;
+      if(t===MAT.FIRE){
+        imgData[pi]=180+(Math.random()*75)|0;
+        imgData[pi+1]=40+(Math.random()*160)|0;
+        imgData[pi+2]=(Math.random()*30)|0;
+      }else if(t===MAT.LAVA){
+        const pulse=(Math.sin(now*.005+i*.07)+1)*.5;
+        imgData[pi]=Math.min(255,colorR[i]+(pulse*40)|0);
+        imgData[pi+1]=Math.min(255,colorG[i]+(pulse*25)|0);
+        imgData[pi+2]=colorB[i];
+      }else{
+        imgData[pi]=colorR[i];imgData[pi+1]=colorG[i];imgData[pi+2]=colorB[i];
+      }
+    }
+  }
+  ctx.putImageData(imageData,0,0);
+  particleCount=count;
+}
+
+function loop(ts){
+  requestAnimationFrame(loop);
+  fpsFrames++;
+  if(ts-fpsTime>=1000){
+    currentFPS=fpsFrames;fpsFrames=0;fpsTime=ts;
+    document.getElementById('fps-display').textContent=currentFPS+' FPS';
+    document.getElementById('count-display').textContent=particleCount+' 粒子';
+  }
+  if(!paused){
+    for(let s=0;s<simSpeed;s++)update();
+  }
+  render();
+}
+
+window.addEventListener('load',init);
+window.addEventListener('resize',()=>{
+  // Just re-init on resize
+  init();
+});
+</script>
+</body>
+</html>
